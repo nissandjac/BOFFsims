@@ -1,4 +1,4 @@
-# Run MSE from the RAM stocks # 
+# Run MSE # 
 library(reshape2)
 library(gtools)
 library(patchwork)

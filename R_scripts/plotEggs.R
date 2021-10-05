@@ -28,15 +28,11 @@ df.tmb <- list(
 )
 
 
-parms <- list(lalpha = 60)
+parms <- list(lalpha = 60, beta = NA)
 
 compile("src/fits.cpp")
 dyn.load(dynlib("src/fits"))
 obj <-MakeADFun(df.tmb,parms,DLL="fits")
-
-
-plot(df.tmb$w,df.tmb$fecundity/1e6, xlim = c(0,30))
-lines(df.tmb$w, df.tmb$w*1)
 
 
 lower <- obj$par-Inf
@@ -45,4 +41,23 @@ upper <- obj$par+Inf
 system.time(opt<-nlminb(obj$par,obj$fn,obj$gr,lower=lower,upper=upper, 
                         control = list(iter.max = 1e6,
                                        eval.max = 1e6))) #
+
+
+system.time(rep<-sdreport(obj))
+rep
+
+sdrep <- summary(rep)
+rep.values<-rownames(sdrep)
+
+
+fits <- data.frame(value = sdrep[rep.values == 'fits',1])
+df$SE <- sdrep[rep.values == name,2]
+df$min <- df[,1]-2*df$SE
+df$max <- df[,1]+2*df$SE
+df$metric <- name
+
+
+plot(df.tmb$w,fits$value, type= 'l')
+points(df.tmb$w, df.tmb$fecundity)
+
 

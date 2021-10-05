@@ -12,7 +12,7 @@ DATA_VECTOR(fecundity)
 DATA_INTEGER(nobs)
 
 PARAMETER(lalpha)
-
+PARAMETER(beta)
 
 vector<Type>fits(nobs);
 
@@ -20,7 +20,7 @@ Type alpha = exp(lalpha);
 
 
 for(int i=0;i<nobs;i++){ // Start time loop
- fits(i) = alpha*w(i);
+ fits(i) = alpha*pow(w(i), beta);
 }
 
 

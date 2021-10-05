@@ -298,7 +298,7 @@ run.agebased.true.catch <- function(df, seed = 123){
       if(recruitment == 'BH'){
       
       # Calculate eggs per individual   
-      Rtot <- N.save.age[,yr,space,1]*Mat.sel*  
+      Rtot <- N.save.age[,yr,space,1]*Mat.sel  
         
         
       R <- (4*h*R_0[space]*SSB[yr,space]/
