@@ -298,12 +298,15 @@ run.agebased.true.catch <- function(df, seed = 123){
       if(recruitment == 'BH'){
       
       # Calculate eggs per individual   
-      Rtot <- N.save.age[,yr,space,1]*Mat.sel  
+      Rtot <- N.save.age[,yr,space,1]*Mat.sel*egg.size  
         
         
-      R <- (4*h*R_0[space]*SSB[yr,space]/
-            (SSB_0[space]*(1-h)+ SSB[yr,space]*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
+      # R <- (4*h*R_0[space]*SSB[yr,space]/
+      #       (SSB_0[space]*(1-h)+ SSB[yr,space]*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
     
+      # Formulate BH in terms of egg production instead of SSB 
+      R <- df$alpha*Rtot/(1+df$beta*Rtot)
+      
       N.save.age[1,yr,space,1] <- R
       R.save[yr,space] <- R
       
@@ -358,7 +361,7 @@ run.agebased.true.catch <- function(df, seed = 123){
           
           warning(paste('Catch exceeds available biomass in year:',year[yr],' and season', season, 'area', space)) # Stop if in the past 
                     #print(paste('Catch exceeds available biomass in year:',year,' and season', season, 'area', space))
-          E.temp <- 0.80*B.tmp
+          E.temp <- 0.95*B.tmp
           Catch.quota.N[yr,space,season] <- 1
           #if(df$years[yr] > 2026){
           #stop('danger')

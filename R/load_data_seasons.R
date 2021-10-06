@@ -45,6 +45,7 @@ load_data_seasons <- function(nseason = 1,
                               recruitment = 'BH',
                               alpha = NA,
                               beta = 1, 
+                              negs = rep(1, nage),
                               seed = NA
                               ){
   
@@ -343,6 +344,10 @@ load_data_seasons <- function(nseason = 1,
     omega = NA
   }
   
+  egg.size <- negs
+  
+  
+  
   df <-list(      #### Parameters #####
                   wage_ssb = t(wage_ssb),
                   wage_catch = t(wage_catch),
@@ -400,7 +405,8 @@ load_data_seasons <- function(nseason = 1,
                   mortality = mortality,
                   recruitment = recruitment,
                   alpha = alpha,
-                  beta = beta
+                  beta = beta,
+                  egg.size = egg.size
                   
                 
                   # Parameters from the estimation model 
