@@ -45,7 +45,8 @@ load_data_seasons <- function(nseason = 1,
                               recruitment = 'BH',
                               alpha = NA,
                               beta = 1, 
-                              negs = rep(1, nage),
+                              negg = rep(1, nage),
+                              eggbeta = 1,
                               seed = NA
                               ){
   
@@ -313,6 +314,10 @@ load_data_seasons <- function(nseason = 1,
   initN <- rep(0, nage-1) # 
   
   
+  if(recruitment == 'BH'){
+    R0 <- alpha/beta
+  }
+  
   parms <- list( # Keep parameters for an age based model in a seperate list
        logRinit = log(R0),
        logh = log(h),
@@ -344,7 +349,16 @@ load_data_seasons <- function(nseason = 1,
     omega = NA
   }
   
-  egg.size <- negs
+  
+  if(length(negg) == 1){
+    negg <- rep(negg, nage)
+  }
+  
+  if(length(negg) != nage){
+    stop('wrong size')
+  }
+  
+  egg.size <- (negg*wage_ssb[1,]^eggbeta)/1e6 # Scale to get easier numbers to work iwth
   
   
   

@@ -130,6 +130,8 @@ run.agebased.true.catch <- function(df, seed = 123){
 
   
   R.save <- matrix(NA,nyear, nspace, dimnames = list(year = year, space = 1:nspace))
+  Rtot.save <- matrix(NA,nyear, nspace, dimnames = list(year = year, space = 1:nspace))
+  
   Fsel.save <- array(NA,dim = c(nage,nyear,nspace), dimnames = list(age = age, year = year, space = 1:nspace))
   Fseason.save <- array(NA,dim = c(nage, nyear, nspace,nseason), dimnames = list(age = age, year = year, space = 1:nspace,
                                                                                  season = 1:nseason))
@@ -250,23 +252,17 @@ run.agebased.true.catch <- function(df, seed = 123){
  
   for (yr in 1:nyear){ # Loop over years add one year for initial distribution
     
-      w_catch <- df$wage_catch[,yr]
-      w_surv <- df$wage_survey[,yr]
-      w_mid <- df$wage_mid[,yr]
-      w_ssb <- df$wage_ssb[,yr]
+    w_catch <- df$wage_catch[,yr]
+    w_surv <- df$wage_survey[,yr]
+    w_mid <- df$wage_mid[,yr]
+    w_ssb <- df$wage_ssb[,yr]
   
     
     
-     Ry <- df$parms$Rin[yr]
+    Ry <- df$parms$Rin[yr]
  
 
     # Fyear <- F0[yr]*Fsel
-    Myear <- M[yr,] # Natural mortality 
-    
-    ## add these to load data seasons 
-    # Fnseason <- matrix(1, nseason)
-    # Fnseason <- Fnseason/sum(Fnseason)
-    # Fnseason <- c(0,0.5,0.5,0)
 
     
     if(df$move == FALSE){
@@ -278,7 +274,7 @@ run.agebased.true.catch <- function(df, seed = 123){
     
     # fix Ssb and recruitment in all areas 
     for(space in 1:nspace){
-      SSB.weight[yr,space] <- sum(N.save.age[,yr,space,1]*as.numeric(w_ssb)^beta*df$Matsel, na.rm = TRUE)
+      SSB.weight[yr,space] <- sum(N.save.age[,yr,space,1]*as.numeric(w_ssb)*df$Matsel, na.rm = TRUE)
       SSB[yr,space] <- SSB.weight[yr,space] #sum(N.save.age[,yr,space,1]*Mat.sel, na.rm = TRUE)
       Biomass.save[yr,space] <- sum(N.save.age[,yr,space,1]*as.numeric(w_mid), na.rm = TRUE)
       SSB.all[1,space,1]<- sum(N.save.age[,1,space,1]*Mat.sel, na.rm = TRUE)
@@ -287,28 +283,29 @@ run.agebased.true.catch <- function(df, seed = 123){
       Mage <- cumsum(Myear)#c(0,cumsum(M[1,1:(nage-1)]))
       
       # Calculate N0 based on R0
-      N0.eq <- rep(NA,nagetmp)
-      
-      N0.eq[1] <- R0
-      N0.eq[2:(nagetmp-1)] = R0*exp(-Mage[1:(nagetmp-2)])
-      N0.eq[nagetmp] =  R0*exp(-Mage[nagetmp-1])/(1-exp(-Myear[nage]))
-      SSB.eq[yr, space] <- sum(N0.eq*as.numeric(w_ssb)*df$Matsel)
-      
+      # N0.eq <- rep(NA,nagetmp)
+      # 
+      # N0.eq[1] <- R0
+      # N0.eq[2:(nagetmp-1)] = R0*exp(-Mage[1:(nagetmp-2)])
+      # N0.eq[nagetmp] =  R0*exp(-Mage[nagetmp-1])/(1-exp(-Myear[nage]))
+      # SSB.eq[yr, space] <- sum(N0.eq*as.numeric(w_ssb)*df$Matsel)
+      # 
     # Recruitment only in season 1  
       if(recruitment == 'BH'){
       
+      N.save.age[1,yr,space,1] <- 0 # No recruits yet (avoid NA calculation)
       # Calculate eggs per individual   
-      Rtot <- N.save.age[,yr,space,1]*Mat.sel*egg.size  
-        
+      Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size)
         
       # R <- (4*h*R_0[space]*SSB[yr,space]/
       #       (SSB_0[space]*(1-h)+ SSB[yr,space]*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
     
       # Formulate BH in terms of egg production instead of SSB 
-      R <- df$alpha*Rtot/(1+df$beta*Rtot)
+      R <- (df$alpha*Rtot)/(1+df$beta*Rtot)*exp(-0.5*df$b[yr]*SDR^2+Ry)
       
       N.save.age[1,yr,space,1] <- R
       R.save[yr,space] <- R
+      Rtot.save[yr,space] <- Rtot
       
       }
       
@@ -601,6 +598,7 @@ run.agebased.true.catch <- function(df, seed = 123){
                      SSB = SSB, 
                      N.save.age = N.save.age,
                      R.save = R.save,
+                     Rtot.save = Rtot.save,
                      V.save = V.save,
                      Biomass = Biomass.save,
                      SSB.all = SSB.all,

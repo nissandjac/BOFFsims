@@ -15,124 +15,122 @@ source('R/load_data_seasons.R')
 eggs <- read.csv('data/fecundityEggSizeFemaleSize.csv')
 eggs$weight <- 0.01*(eggs$FemaleSize_mm/10)^3 # Fix this later
 # All eggs as a function of size 
-ggplot(eggs, aes(x = weight, y = exp(lnFecundity), color = Species))+
-  geom_point()+theme_bw()+theme(legend.position = 'none')+
-  geom_smooth(method = 'lm')+
-  scale_x_log10()+
-  scale_y_log10()
 
+eggs <- eggs %>% group_by(Species) %>% mutate(relweight = weight/max(weight),
+                                              releggs = Fecundity_nOfEggs_per_female/max(Fecundity_nOfEggs_per_female)
+                                              )
+
+
+x <- eggs[is.na(eggs$relweight) == 0,]$relweight
+y <- eggs[is.na(eggs$relweight) == 0,]$releggs
+
+
+# all relative eggs 
+parms <- est_eggs(x,y)
+
+
+# ggplot(eggs, aes(x = relweight, y = releggs, group = Species, color = Species))+
+#   geom_point()+theme_bw()+theme(legend.position = 'none')+
+#   geom_smooth(method = 'glm',se = FALSE)#+
 # 
-unique(eggs$Species)
+# 
 
 # Just take the cod eggs most of the other fish are not really big fisheries 
 cod <- eggs[eggs$Species == 'Gadus morhua',]
 
 cod$weight <- 0.01*(cod$FemaleSize_mm/10)^3 # Fix the parameters for weight lenght to whatever here 
 
+codest <- est_eggs(x = cod$weight,
+                   y = cod$Fecundity_nOfEggs_per_female)
 
+
+ggplot(codest$df[codest$df$model != 'data',], 
+       aes(x =  weight, y = estimate/weight, color = model))+geom_line()+theme_bw()
 
 nruns <- 100
 saving <- TRUE
 seeds <- round(runif(n = nruns, min = 1,  max = 1e6))
 
 
-df <- load_data_seasons(nseason = 4,
+df <- load_data_seasons(nseason = 1,
                         nyear = 100,# Set up parameters 
                         Linf = 150, 
                         maxage = 10,
                         K = 1, 
-                        t0 = 0, SDR = .7,
+                        t0 = 0, 
+                        SDR = .2, # Recruitment deviations 
                         fishing.type = 'constant',
                         mortality = 'constant',
-                        alpha = 1e6,
-                        beta = 2) # Specify parameters
-
-
-lmegg <- lm(exp(lnFecundity) ~ weight, data = cod)
-
-# Assume a 0 intercept 
-intercept <- 0.
-lmegg <- lm(I(exp(lnFecundity) - intercept) ~ 0 + weight, cod)
-lmegglog <- lm(I(lnFecundity - intercept) ~ 0 + weight, cod)
-
-# Try custom function 
+                        alpha = 1e7,
+                        beta = 2,
+                        negg = codest$parameters[['alpha.hyper']],
+                        eggbeta = codest$parameters[['beta.hyper']],
+                        F0 = 0) # Specify parameters
 
 
 
-
-wmodel <- seq(1,max(cod$weight), length.out = 100)
-
-beta <- 2
-eggs.hyp <- wmodel^2*exp(rnorm(length(wmodel), sd = 0.2))
-eggs.lin <- (wmodel*beta*1e4)*exp(rnorm(length(wmodel), sd = 0.2))
-
-plot(wmodel, eggs.hyp)
-points(wmodel,eggs.lin, col = 'red')
+tmp <- run.agebased.true.catch(df, seed = seeds[1])
 
 
-plot((wmodel/eggs.hyp)[2:100])
-plot((wmodel/eggs.lin)[2:100])
+df.save <- data.frame(years = rep(df$years, nruns),
+                           SSB = NA,
+                           R = NA,
+                           Rtot = NA,
+                           Catch = NA, 
+                           run = rep(1:nruns, each = length(df$years)),
+                           model = 'linear')
 
 
-df.t <- data.frame(weight = rep(wmodel, 2), 
-                   fecundity = c(
-                     wmodel*lmegg$coefficients[1],
-                     exp(wmodel*lmegglog$coefficients[1])
-                   ),
-                   model = rep(c('linear','log'), each = length(wmodel))
-)
-ggplot(df.t, aes(x = weight, y = fecundity, color = model))+geom_line()+theme_bw()
+alpha <- 1e7
+beta <- 1
 
+SSBtest <- seq(1, alpha/beta, length.out = 100)
+bhmodel <- (df$alpha*SSBtest)/(1+df$beta*SSBtest)
 
-ggplot(cod, aes(x = weight, y = Fecundity_nOfEggs_per_female))+geom_point()+
-  theme_classic()+
-  geom_line(data = df.t, aes(x = weight,  y = fecundity, color = model))+
-  scale_y_log10()
-
-
-df.t$fecundity[df.t$fecundity < 0] <- NA
-
-ggplot(cod, aes(x = weight, y = Fecundity_nOfEggs_per_female/weight))+geom_point()+
-  theme_classic()+
-  geom_line(data = df.t, aes(x = weight,  y = fecundity/weight, color = model))
-
-
-
-tmprun <- run.agebased.true.catch(df, seed = seeds[1])
-
-
-df$egg.size <- 
-
+plot(SSBtest,bhmodel)
 
 
 for(i in 1:nruns){
   set.seed(seeds[i])
   
-  df <- load_data_seasons(nseason = 4,
-                          nyear = 100,# Set up parameters 
-                          Linf = 30, 
-                          maxage = 10,
-                          K = 1, 
-                          t0 = 0, SDR = .7,
+  df <- load_data_seasons(nseason = 1,
+                          nyear = 50,# Run 50 years 
+                          Linf = 150, # Asymptotic size  
+                          maxage = 10, # Plus group 
+                          K = 1,  # growth parameters
+                          t0 = 0, 
+                          SDR = 0, # Recruitment deviations 
                           fishing.type = 'constant',
                           mortality = 'constant',
-                          alpha = 1e6,
-                          beta = 2) # Specify parameters 
+                          alpha = alpha, # Beverton holt parameters 
+                          beta = beta,
+                          negg = codest$parameters[['alpha.lin']], # Eggs per gram
+                          eggbeta = codest$parameters[['beta.lin']], # Eggs exponential scaling
+                          F0 = 0) # Without fishing 
   
   
   tmprun <- run.agebased.true.catch(df, seed = seeds[i])
   
+  
   df.save[df.save$run == i,]$SSB <- tmprun$SSB
-  df.save[df.save$run == i,]$R <- tmprun$R
+  df.save[df.save$run == i,]$R <- tmprun$R.save
+  df.save[df.save$run == i,]$Rtot <- tmprun$Rtot.save
   df.save[df.save$run == i,]$Catch <- tmprun$Catch
   
 }
 
 
 df.sum <- df.save %>% group_by(years, model) %>% 
-  summarise(S = mean(SSB),
-            Rec = mean(R),
-            C = mean(Catch),
+  summarise(S = median(SSB),
+            Rec = median(R),
+            C = median(Catch),
+            Rtot = median(Rtot),
+            Smin = quantile(SSB, probs = 0.05),
+            Smax = quantile(SSB, probs = 0.95),
+            Recmin = quantile(R, probs = 0.05),
+            Rmax = quantile(R, probs = 0.95),
+            Cmin = quantile(Catch, probs = 0.05),
+            Cmax = quantile(SSB, probs = 0.95)
             )
 
 
@@ -140,6 +138,7 @@ df.sum <- df.save %>% group_by(years, model) %>%
 df.save.boff <- data.frame(years = rep(df$years, nruns),
                       SSB = NA,
                       R = NA,
+                      Rtot = NA,
                       Catch = NA, 
                       run = rep(1:nruns, each = length(df$years)),
                       model = 'boff')
@@ -147,29 +146,43 @@ df.save.boff <- data.frame(years = rep(df$years, nruns),
 for(i in 1:nruns){
   set.seed(seeds[i])
   
-  df <- load_data_seasons(nseason = 4,
-                          nyear = nyear,# Set up parameters 
-                          Linf = 30, 
-                          maxage = 10,
-                          K = 1, 
-                          t0 = 0, SDR = .7,
-                          fishing.type = 'AR',
-                          mortality = 'AR',
-                          beta = 1.3) # Specify parameters 
+  df <- load_data_seasons(nseason = 1,
+                          nyear = 50,# Run 50 years 
+                          Linf = 150, # Asymptotic size  
+                          maxage = 10, # Plus group 
+                          K = 1,  # growth parameters
+                          t0 = 0, 
+                          SDR = 0, # Recruitment deviations 
+                          fishing.type = 'constant',
+                          mortality = 'constant',
+                          alpha = alpha, # Beverton holt parameters 
+                          beta = beta,
+                          negg = codest$parameters[['alpha.hyper']], # Eggs per gram
+                          eggbeta = codest$parameters[['beta.hyper']], # Eggs exponential scaling
+                          F0 = .0) # Without fishing 
+  
   
   tmprun <- run.agebased.true.catch(df, seed = seeds[i])
   
   df.save.boff[df.save.boff$run == i,]$SSB <- tmprun$SSB
-  df.save.boff[df.save.boff$run == i,]$R <- tmprun$R
+  df.save.boff[df.save.boff$run == i,]$R <- tmprun$R.save
+  df.save.boff[df.save.boff$run == i,]$Rtot <- tmprun$Rtot.save
   df.save.boff[df.save.boff$run == i,]$Catch <- tmprun$Catch
   
 }
 
 
 df.sum.boff <- df.save.boff %>% group_by(years, model) %>% 
-  summarise(S = mean(SSB),
-            Rec = mean(R),
-            C = mean(Catch),
+  summarise(S = median(SSB),
+            Rec = median(R),
+            C = median(Catch),
+            Rtot = median(Rtot),
+            Smin = quantile(SSB, probs = 0.05),
+            Smax = quantile(SSB, probs = 0.95),
+            Recmin = quantile(R, probs = 0.05),
+            Rmax = quantile(R, probs = 0.95),
+            Cmin = quantile(Catch, probs = 0.05),
+            Cmax = quantile(SSB, probs = 0.95)
   )
 
 
@@ -179,11 +192,36 @@ df.sum.boff <- df.save.boff %>% group_by(years, model) %>%
 df.plot <- rbind(df.save, df.save.boff)
 df.sumplot <- rbind(df.sum, df.sum.boff)
 
-ggplot(df.plot, aes(x= years, y = SSB, group = as.factor(run), color = model))+geom_line(alpha = 0.1, size = .5)+theme_bw()+theme(legend.position = 'none')+
-  geom_line(data = df.sumplot, aes(y = S, group = NA), size = 2)
+
+ggplot(df.sumplot, aes(x = years, y= Rtot, color = model))+geom_line()+
+  theme_classic()
 
 
 
-ggplot(df.sumplot, aes(x = years, y = S, color = model))+geom_line()+theme_bw()+
-  geom_hline(aes(yintercept = tmprun$SSB_0))
+ggplot(df.plot,aes(x = SSB, y = Rtot, color = model))+geom_point()+theme_classic()+
+  geom_line(aes(y = R))
+
+  
+  
+plot(SSBtest,bhmodel)
+
+
+
+# ggplot(df.plot, aes(x= years, y = SSB, group = as.factor(run), color = model))+
+#   geom_line(alpha = 0.1, size = .5)+
+#   theme_bw()+theme(legend.position = 'none')+
+#   geom_line(data = df.sumplot, aes(y = S, group = NA), size = 2)
+
+
+
+ggplot(df.sumplot, aes(x = years, y = S, group = model))+geom_line()+theme_classic()+
+  geom_hline(aes(yintercept = tmprun$SSB_0))+
+  geom_ribbon(aes(ymin = Smin, ymax = Smax), fill = 'red', alpha = 0.1, linetype = 0)
+
+
+
+plot(df.sum$Rtot/df.sum.boff$Rtot)
+lines(df.sum.boff$Rtot)
+
+plot(df.plot$SSB, df.plot$SSB)
 
