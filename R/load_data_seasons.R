@@ -318,6 +318,10 @@ load_data_seasons <- function(nseason = 1,
     R0 <- alpha/beta
   }
   
+  if(recruitment == 'Ricker'){
+    R0 <- 1/beta
+  }
+  
   parms <- list( # Keep parameters for an age based model in a seperate list
        logRinit = log(R0),
        logh = log(h),
@@ -358,7 +362,7 @@ load_data_seasons <- function(nseason = 1,
     stop('wrong size')
   }
   
-  egg.size <- (negg*wage_ssb[1,]^eggbeta)/1e6 # Scale to get easier numbers to work iwth
+  egg.size <- (negg*wage_ssb[1,]^eggbeta)/1e7 # Scale to get easier numbers to work iwth
   
   
   

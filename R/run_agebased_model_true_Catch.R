@@ -309,10 +309,31 @@ run.agebased.true.catch <- function(df, seed = 123){
       
       }
       
+      if(recruitment == 'BH_steep'){
+        
+        N.save.age[1,yr,space,1] <- 0 # No recruits yet (avoid NA calculation)
+        # Calculate eggs per individual   
+        Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size)
+        
+        R <- (4*h*R_0[space]*SSB[yr,space]/
+              (SSB_0[space]*(1-h)+ SSB[yr,space]*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
+        
+        
+        N.save.age[1,yr,space,1] <- R
+        R.save[yr,space] <- R
+        Rtot.save[yr,space] <- Rtot
+        
+      }
+      
       
       if(recruitment == 'Ricker'){
+
+        N.save.age[1,yr,space,1] <- 0 # No recruits yet (avoid NA calculation)
+        # Calculate eggs per individual   
+        Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size)
+        Rtot <- SSB[yr,space]
         
-        R <- alpha * SSB[yr, space] * exp(-alpha * (SSB[yr, space]/R0))*exp(-0.5*df$b[yr]*SDR^2+Ry)#
+        R <- alpha*Rtot *exp(-beta * Rtot)*exp(-0.5*df$b[yr]*SDR^2+Ry)#
         
         N.save.age[1,yr,space,1] <- R
         R.save[yr,space] <- R

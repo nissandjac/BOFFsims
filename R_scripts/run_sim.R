@@ -51,26 +51,41 @@ nruns <- 100
 saving <- TRUE
 seeds <- round(runif(n = nruns, min = 1,  max = 1e6))
 
+alpha <- 1e6
+beta <- 1e-10
+
+SSBtest <- seq(1, 1e7, length.out = 1000)
+bhmodel <- alpha*SSBtest *exp(-beta * SSBtest)#*exp(-0.5*df$b[yr]*SDR^2+Ry)#
+plot(SSBtest,bhmodel, type = 'l')
+lines(rep(1/beta, 100), y = seq(0,1e12, length.out =100))
+
 
 df <- load_data_seasons(nseason = 1,
                         nyear = 100,# Set up parameters 
                         Linf = 150, 
                         maxage = 10,
-                        K = 1, 
+                        h = 0.4,
+                        K = .4, 
                         t0 = 0, 
-                        SDR = .2, # Recruitment deviations 
+                        SDR = 0, # Recruitment deviations 
                         fishing.type = 'constant',
                         mortality = 'constant',
-                        alpha = 1e7,
-                        beta = 2,
-                        negg = codest$parameters[['alpha.hyper']],
-                        eggbeta = codest$parameters[['beta.hyper']],
-                        F0 = 0) # Specify parameters
+                        alpha = alpha,
+                        beta = beta,
+                        recruitment = 'BH_steep',
+                        negg = codest$parameters[['alpha.lin']],
+                        eggbeta = codest$parameters[['beta.lin']],
+                        F0 = 1,
+                        R0 = 1e7) # Specify parameters
 
 
 
 tmp <- run.agebased.true.catch(df, seed = seeds[1])
 
+plot(tmp$R.save/tmp$Rtot.save, type ='l', ylim = range(tmp$R.save/tmp$Rtot.save)*c(0.2,1.6))
+lines(rep(exp(df$parms$logRinit),length(tmp$R.save)))
+
+plot(tmp$SSB/tmp$SSB_0, type = 'l')
 
 df.save <- data.frame(years = rep(df$years, nruns),
                            SSB = NA,
@@ -81,32 +96,37 @@ df.save <- data.frame(years = rep(df$years, nruns),
                            model = 'linear')
 
 
-alpha <- 1e7
-beta <- 1
 
-SSBtest <- seq(1, alpha/beta, length.out = 100)
-bhmodel <- (df$alpha*SSBtest)/(1+df$beta*SSBtest)
+# SSBtest <- seq(1, alpha/beta, length.out = 100)
+# bhmodel <- (alpha*SSBtest)/(1+beta*SSBtest)
+# 
+# 
+# 
+# bhmodel <- alpha*SSBtest *exp(-beta * SSBtest)#*exp(-0.5*df$b[yr]*SDR^2+Ry)#
+# plot(SSBtest,bhmodel, type = 'l')
+# lines(rep(1/beta, 100), y = seq(0,1e12, length.out =100))
 
-plot(SSBtest,bhmodel)
 
 
 for(i in 1:nruns){
   set.seed(seeds[i])
   
   df <- load_data_seasons(nseason = 1,
-                          nyear = 50,# Run 50 years 
+                          nyear = 100,# Run 50 years 
                           Linf = 150, # Asymptotic size  
                           maxage = 10, # Plus group 
-                          K = 1,  # growth parameters
                           t0 = 0, 
+                          h = 0.4,
+                          K = .4, 
                           SDR = 0, # Recruitment deviations 
                           fishing.type = 'constant',
                           mortality = 'constant',
                           alpha = alpha, # Beverton holt parameters 
                           beta = beta,
+                          recruitment = 'BH',
                           negg = codest$parameters[['alpha.lin']], # Eggs per gram
                           eggbeta = codest$parameters[['beta.lin']], # Eggs exponential scaling
-                          F0 = 0) # Without fishing 
+                          F0 = 0.3) # Without fishing 
   
   
   tmprun <- run.agebased.true.catch(df, seed = seeds[i])
@@ -147,19 +167,21 @@ for(i in 1:nruns){
   set.seed(seeds[i])
   
   df <- load_data_seasons(nseason = 1,
-                          nyear = 50,# Run 50 years 
+                          nyear = 100,# Run 50 years 
                           Linf = 150, # Asymptotic size  
                           maxage = 10, # Plus group 
-                          K = 1,  # growth parameters
                           t0 = 0, 
+                          h = 0.4,
+                          K = .4,
                           SDR = 0, # Recruitment deviations 
                           fishing.type = 'constant',
                           mortality = 'constant',
                           alpha = alpha, # Beverton holt parameters 
                           beta = beta,
+                          recruitment = 'BH_steep',
                           negg = codest$parameters[['alpha.hyper']], # Eggs per gram
                           eggbeta = codest$parameters[['beta.hyper']], # Eggs exponential scaling
-                          F0 = .0) # Without fishing 
+                          F0 = .3) # Without fishing 
   
   
   tmprun <- run.agebased.true.catch(df, seed = seeds[i])
@@ -203,18 +225,14 @@ ggplot(df.plot,aes(x = SSB, y = Rtot, color = model))+geom_point()+theme_classic
 
   
   
-plot(SSBtest,bhmodel)
+ggplot(df.plot, aes(x= years, y = SSB, group = as.factor(run), color = model))+
+  geom_line(alpha = 0.1, size = .5)+
+  theme_bw()+theme(legend.position = 'none')+
+  geom_line(data = df.sumplot, aes(y = S, group = NA), size = 2)
 
 
 
-# ggplot(df.plot, aes(x= years, y = SSB, group = as.factor(run), color = model))+
-#   geom_line(alpha = 0.1, size = .5)+
-#   theme_bw()+theme(legend.position = 'none')+
-#   geom_line(data = df.sumplot, aes(y = S, group = NA), size = 2)
-
-
-
-ggplot(df.sumplot, aes(x = years, y = S, group = model))+geom_line()+theme_classic()+
+ggplot(df.sumplot, aes(x = years, y = S, color = model))+geom_line()+theme_classic()+
   geom_hline(aes(yintercept = tmprun$SSB_0))+
   geom_ribbon(aes(ymin = Smin, ymax = Smax), fill = 'red', alpha = 0.1, linetype = 0)
 
@@ -223,5 +241,5 @@ ggplot(df.sumplot, aes(x = years, y = S, group = model))+geom_line()+theme_class
 plot(df.sum$Rtot/df.sum.boff$Rtot)
 lines(df.sum.boff$Rtot)
 
-plot(df.plot$SSB, df.plot$SSB)
+plot(df.save$SSB, df.save.boff$SSB)
 
