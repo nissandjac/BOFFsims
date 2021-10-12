@@ -88,11 +88,11 @@ run.agebased.true.catch <- function(df, seed = 123){
   
   for(i in 1:nspace){
     #SSB_0[i] <- sum(df$Matsel*N0*move.init[i])
-    SSB_0[i] <- sum(N0*move.init[i]*df$wage_ssb[,1]*df$Matsel)
+    SSB_0[i] <- sum(N0*df$wage_ssb[,1]*df$Matsel)
   }
   names(SSB_0) <- paste(rep('space',each = df$nspace),1:nspace)
   
-  R_0 <- R0*move.init
+  R_0 <- R0#*move.init
   # Used the inital recruitment devs to get a start
   
   
@@ -220,7 +220,7 @@ run.agebased.true.catch <- function(df, seed = 123){
   
   for (space in 1:nspace){
       # if (season == 1){
-      N.save.age[,1,space,1] <- Ninit*move.init[space] # Just to initialize 
+      N.save.age[,1,space,1] <- Ninit#*move.init[space] # Just to initialize 
       N.save.age.mid[,1,space,1] <- N.save.age[,1,space,1]*exp(-0.5*(M[1,]/nseason))
       # }else{
       #   N.save.age[,1,space,season] <- N.save.age[,1,space,season-1]*exp(-M/nseason)
@@ -263,7 +263,7 @@ run.agebased.true.catch <- function(df, seed = 123){
  
 
     # Fyear <- F0[yr]*Fsel
-
+    Myear <- M0[yr]
     
     if(df$move == FALSE){
       Fspace <- 1 # All catches 
@@ -275,7 +275,7 @@ run.agebased.true.catch <- function(df, seed = 123){
     # fix Ssb and recruitment in all areas 
     for(space in 1:nspace){
       SSB.weight[yr,space] <- sum(N.save.age[,yr,space,1]*as.numeric(w_ssb)*df$Matsel, na.rm = TRUE)
-      SSB[yr,space] <- SSB.weight[yr,space] #sum(N.save.age[,yr,space,1]*Mat.sel, na.rm = TRUE)
+      SSB[yr,space] <- sum(N.save.age[,yr,space,1]*as.numeric(w_ssb)*df$Matsel, na.rm = TRUE)
       Biomass.save[yr,space] <- sum(N.save.age[,yr,space,1]*as.numeric(w_mid), na.rm = TRUE)
       SSB.all[1,space,1]<- sum(N.save.age[,1,space,1]*Mat.sel, na.rm = TRUE)
       
@@ -301,7 +301,7 @@ run.agebased.true.catch <- function(df, seed = 123){
       #       (SSB_0[space]*(1-h)+ SSB[yr,space]*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
     
       # Formulate BH in terms of egg production instead of SSB 
-      R <- (df$alpha*Rtot)/(1+df$beta*Rtot)*exp(-0.5*df$b[yr]*SDR^2+Ry)
+      R <- (df$alpha*SSB[yr,space])/(1+df$beta*SSB[yr,space])*exp(-0.5*df$b[yr]*SDR^2+Ry)
       
       N.save.age[1,yr,space,1] <- R
       R.save[yr,space] <- R
@@ -331,12 +331,14 @@ run.agebased.true.catch <- function(df, seed = 123){
         N.save.age[1,yr,space,1] <- 0 # No recruits yet (avoid NA calculation)
         # Calculate eggs per individual   
         Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size)
-        Rtot <- SSB[yr,space]
+        #Rtot <- SSB[yr,space]
         
         R <- alpha*Rtot *exp(-beta * Rtot)*exp(-0.5*df$b[yr]*SDR^2+Ry)#
         
         N.save.age[1,yr,space,1] <- R
         R.save[yr,space] <- R
+        Rtot.save[yr,space] <- Rtot
+        
         
         
       }

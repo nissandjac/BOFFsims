@@ -8,7 +8,7 @@ library(TMB)
 source('R/calcSSB0.R')
 source('R/run_agebased_model_true_Catch.R')
 source('R/load_data_seasons.R')
-
+source('R/est_eggs.R')
 
 # Load the data frame with eggs 
 
@@ -51,10 +51,12 @@ nruns <- 100
 saving <- TRUE
 seeds <- round(runif(n = nruns, min = 1,  max = 1e6))
 
-alpha <- 1e6
-beta <- 1e-10
 
-SSBtest <- seq(1, 1e7, length.out = 1000)
+
+alpha <- 0.1
+beta <- 1e-8
+
+SSBtest <- seq(1, 1e10, length.out = 1000)
 bhmodel <- alpha*SSBtest *exp(-beta * SSBtest)#*exp(-0.5*df$b[yr]*SDR^2+Ry)#
 plot(SSBtest,bhmodel, type = 'l')
 lines(rep(1/beta, 100), y = seq(0,1e12, length.out =100))
@@ -72,15 +74,57 @@ df <- load_data_seasons(nseason = 1,
                         mortality = 'constant',
                         alpha = alpha,
                         beta = beta,
-                        recruitment = 'BH_steep',
+                        recruitment = 'Ricker',
                         negg = codest$parameters[['alpha.lin']],
                         eggbeta = codest$parameters[['beta.lin']],
-                        F0 = 1,
-                        R0 = 1e7) # Specify parameters
+                        F0 = 0.5) # Specify parameters
+
+#df$parms$logRinit <- log(1)
+tmp <- run.agebased.true.catch(df)
+
+plot(tmp$SSB, type ='l', log ='y')
+
+
+plot(SSBtest,bhmodel, type ='l', xlim = c(0,max(tmp$Rtot.save)))
+points(tmp$Rtot.save, tmp$R.save)
+lines(rep(tmp$Rtot.save[length(tmp$Rtot.save)], 100), seq(0,1e7, length.out = 100))
+
+plot(tmp$R.save/tmp$Rtot.save)
+
+
+# 
+R0 <- sum(df$egg.size*1000) # Assume 10k individuals in each age group for max
+
+alpha <- 1.1
+
+
+df <- load_data_seasons(nseason = 1,
+                        nyear = 100,# Set up parameters 
+                        Linf = 100, 
+                        maxage = 20,
+                        h = 0.5,
+                        K = .5, 
+                        t0 = 0, 
+                        SDR = 0, # Recruitment deviations 
+                        alpha = alpha,
+                        beta = 1/R0,
+                        recruitment = 'Ricker',
+                        negg = codest$parameters[['alpha.lin']],
+                        eggbeta = codest$parameters[['beta.lin']],
+                        F0 = 0) # Specify parameters
+
+
 
 
 
 tmp <- run.agebased.true.catch(df, seed = seeds[1])
+
+
+plot(tmp$R.save,  log = 'y', type= 'l')
+lines(rep(log(df$alpha)/df$beta))
+
+plot(tmp$SSB, type='l', log = 'y')
+
 
 plot(tmp$R.save/tmp$Rtot.save, type ='l', ylim = range(tmp$R.save/tmp$Rtot.save)*c(0.2,1.6))
 lines(rep(exp(df$parms$logRinit),length(tmp$R.save)))
@@ -115,6 +159,7 @@ for(i in 1:nruns){
                           nyear = 100,# Run 50 years 
                           Linf = 150, # Asymptotic size  
                           maxage = 10, # Plus group 
+                          R0 = R0,
                           t0 = 0, 
                           h = 0.4,
                           K = .4, 
@@ -171,6 +216,7 @@ for(i in 1:nruns){
                           Linf = 150, # Asymptotic size  
                           maxage = 10, # Plus group 
                           t0 = 0, 
+                          R0 = R0,
                           h = 0.4,
                           K = .4,
                           SDR = 0, # Recruitment deviations 

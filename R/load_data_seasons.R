@@ -9,7 +9,7 @@ load_data_seasons <- function(nseason = 1,
                               gamma = 1.1,
                               tau = 3,
                               gamma_sel = 1.1,
-                              tau_sel = 3,
+                              tau_sel = 2,
                               maxage = 10,
                               M = 0.2,
                               b = 1,
@@ -362,10 +362,9 @@ load_data_seasons <- function(nseason = 1,
     stop('wrong size')
   }
   
-  egg.size <- (negg*wage_ssb[1,]^eggbeta)/1e7 # Scale to get easier numbers to work iwth
+  egg.size <- (negg*wage_ssb[1,]^eggbeta)/1e5 # Scale to get easier numbers to work iwth
   
-  
-  
+
   df <-list(      #### Parameters #####
                   wage_ssb = t(wage_ssb),
                   wage_catch = t(wage_catch),
