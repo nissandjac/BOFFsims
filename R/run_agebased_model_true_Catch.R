@@ -343,6 +343,21 @@ run.agebased.true.catch <- function(df, seed = 123){
         
       }
       
+      if(recruitment == 'linear'){
+        
+        Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size, na.rm = TRUE)
+        #Rtot <- SSB[yr,space]
+        
+        R <- Rtot
+        
+        N.save.age[1,yr,space,1] <- R
+        R.save[yr,space] <- R
+        Rtot.save[yr,space] <- Rtot
+        
+        
+        
+      }
+      
     }
     
     
