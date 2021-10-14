@@ -314,13 +314,13 @@ load_data_seasons <- function(nseason = 1,
   initN <- rep(0, nage-1) # 
   
   
-  if(recruitment == 'BH'){
-    R0 <- alpha/beta
-  }
-  
-  if(recruitment == 'Ricker'){
-    R0 <- 1/beta
-  }
+  # if(recruitment == 'BH'){
+  #   R0 <- alpha/beta
+  # }
+  # 
+  # if(recruitment == 'Ricker'){
+  #   R0 <- 1/beta
+  # }
   
   parms <- list( # Keep parameters for an age based model in a seperate list
        logRinit = log(R0),
@@ -362,7 +362,7 @@ load_data_seasons <- function(nseason = 1,
     stop('wrong size')
   }
   
-  egg.size <- (negg*wage_ssb[1,]^eggbeta)/1e5 # Scale to get easier numbers to work iwth
+  egg.size <- (negg*wage_ssb[1,]^eggbeta)/1e6 # Scale to get easier numbers to work iwth
   
 
   df <-list(      #### Parameters #####
@@ -428,6 +428,11 @@ load_data_seasons <- function(nseason = 1,
                 
                   # Parameters from the estimation model 
             )
+  
+  
+  Rmax <- getEquilibrium(df)
+  df$Rmax <- Rmax
+  
   
   
   # Fix some things 

@@ -53,7 +53,13 @@ run.agebased.true.catch <- function(df, seed = 123){
   nage <- df$nage
   age <- df$age
   
+  
   R0 <- exp(df$parms$logRinit)
+  
+
+  if(df$recruitment == 'BH_steep'){
+    R0 <- df$Rmax
+  }
   
   Mage <- cumsum(M[1,])#c(0,cumsum(M[1,1:(nage-1)]))
   
@@ -301,11 +307,9 @@ run.agebased.true.catch <- function(df, seed = 123){
       #       (SSB_0[space]*(1-h)+ SSB[yr,space]*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
     
       # Formulate BH in terms of egg production instead of SSB 
-      R <- (df$alpha*SSB[yr,space])/(1+df$beta*SSB[yr,space])*exp(-0.5*df$b[yr]*SDR^2+Ry)
+      R <- (df$alpha*Rtot)/(1+df$beta*Rtot)*exp(-0.5*df$b[yr]*SDR^2+Ry)
       
-      N.save.age[1,yr,space,1] <- R
-      R.save[yr,space] <- R
-      Rtot.save[yr,space] <- Rtot
+   
       
       }
       
@@ -314,14 +318,16 @@ run.agebased.true.catch <- function(df, seed = 123){
         N.save.age[1,yr,space,1] <- 0 # No recruits yet (avoid NA calculation)
         # Calculate eggs per individual   
         Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size)
-        
-        R <- (4*h*R_0[space]*SSB[yr,space]/
-              (SSB_0[space]*(1-h)+ SSB[yr,space]*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
+        Req <- exp(df$parms$logRinit)
         
         
-        N.save.age[1,yr,space,1] <- R
-        R.save[yr,space] <- R
-        Rtot.save[yr,space] <- Rtot
+        R <- (4*h*R0*Rtot/
+              (Req*(1-h)+ Rtot*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
+        
+        # 
+        # R <- (4*h*R_0[space]*SSB[yr,space]/
+        #         (SSB_0[space]*(1-h)+ SSB[yr,space]*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
+
         
       }
       
@@ -334,10 +340,7 @@ run.agebased.true.catch <- function(df, seed = 123){
         #Rtot <- SSB[yr,space]
         
         R <- alpha*Rtot *exp(-beta * Rtot)*exp(-0.5*df$b[yr]*SDR^2+Ry)#
-        
-        N.save.age[1,yr,space,1] <- R
-        R.save[yr,space] <- R
-        Rtot.save[yr,space] <- Rtot
+     
         
         
         
@@ -350,15 +353,22 @@ run.agebased.true.catch <- function(df, seed = 123){
         
         R <- Rtot
         
-        N.save.age[1,yr,space,1] <- R
-        R.save[yr,space] <- R
-        Rtot.save[yr,space] <- Rtot
-        
-        
-        
       }
       
+      if(R < 1e-10){ # Remove numerical instability
+        R <- 0
+      }
+      
+      
+      N.save.age[1,yr,space,1] <- R
+      R.save[yr,space] <- R
+      Rtot.save[yr,space] <- Rtot
+      
+      
+      
     }
+    
+  
     
     
     for (season in 1:nseason){

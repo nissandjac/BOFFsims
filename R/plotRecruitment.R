@@ -44,11 +44,8 @@ plotRecruitment <- function(recruitment = NA,
   
     SSB_0 <- sum(N0*df$wage_ssb[,1]*df$Matsel)
     
-    
-    R <- (4*exp(df$parms$logh)*R0*S/
-            (SSB_0*(1-exp(df$parms$logh))+ S*(5*exp(df$parms$logh)-1)))
-    
- 
+    R <- (4*h*df$Rmax*S/
+            (Req*(1-h)+ S*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
     
   }
   

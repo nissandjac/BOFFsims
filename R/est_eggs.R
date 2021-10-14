@@ -64,7 +64,9 @@ est_eggs <- function(x,y){
   p1 <- ggplot(df[df$model != 'data',], aes(x = weight, y= estimate, color = model))+
     geom_line(size = 1.2)+
     geom_point(data = df[df$model == 'data',], alpha = 0.2)+
-    theme_classic()+scale_y_continuous('fecundity')
+    theme_classic()+scale_y_continuous('fecundity',expand = c(0.01,0.01))+
+    scale_x_continuous(expand = c(0.01,0.01))+
+    coord_cartesian(xlim = c(0, max(df$weight)))
     
   print(p1)
   
