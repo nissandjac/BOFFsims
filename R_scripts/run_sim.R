@@ -10,6 +10,7 @@ source('R/run_agebased_model_true_Catch.R')
 source('R/load_data_seasons.R')
 source('R/est_eggs.R')
 source('R/plotRecruitment.R')
+source('R/getEquilibrium.R')
 
 # Load the data frame with eggs 
 
@@ -76,7 +77,7 @@ df <- load_data_seasons(nseason = 1,
                         mortality = 'constant',
                         alpha = alpha,
                         beta = beta,
-                        recruitment = 'BH',
+                        recruitment = 'BH_steep',
                         negg = codest$parameters[['alpha.lin']],
                         eggbeta = codest$parameters[['beta.lin']],
                         F0 = 0.,
@@ -91,8 +92,10 @@ plot(tmp$R.save, type ='l')
 
 SSBtest <- seq(1, max(tmp$Rtot.save), length.out = 1000)
 bhmodel <- plotRecruitment('BH_steep', S = SSBtest, df = df)
-plot(SSBtest,bhmodel, type = 'l', xlim = c(0,max(tmp$Rtot.save)), ylim = c(0,max(tmp$Rtot.save)))
+plot(SSBtest,bhmodel, type = 'l', xlim = c(1,max(tmp$Rtot.save)), ylim = c(1,max(tmp$R.save)),
+     log = 'y')
 points(tmp$Rtot.save,tmp$R.save)
+
 
 df.save <- data.frame(years = rep(df$years, nruns),
                            SSB = NA,
@@ -104,17 +107,6 @@ df.save <- data.frame(years = rep(df$years, nruns),
 
 
 
-# SSBtest <- seq(1, alpha/beta, length.out = 100)
-# bhmodel <- (alpha*SSBtest)/(1+beta*SSBtest)
-# 
-# 
-# 
-# bhmodel <- alpha*SSBtest *exp(-beta * SSBtest)#*exp(-0.5*df$b[yr]*SDR^2+Ry)#
-# plot(SSBtest,bhmodel, type = 'l')
-# lines(rep(1/beta, 100), y = seq(0,1e12, length.out =100))
-
-
-
 for(i in 1:nruns){
   set.seed(seeds[i])
   
@@ -123,9 +115,10 @@ for(i in 1:nruns){
                           nyear = 200,# Set up parameters 
                           Linf = 150, 
                           maxage = 10,
+                          h = 0.4,
                           K = .4, 
                           t0 = 0, 
-                          SDR = 0., # Recruitment deviations 
+                          SDR = 0.0, # Recruitment deviations 
                           fishing.type = 'constant',
                           mortality = 'constant',
                           alpha = alpha,
@@ -133,8 +126,8 @@ for(i in 1:nruns){
                           recruitment = 'BH_steep',
                           negg = codest$parameters[['alpha.lin']],
                           eggbeta = codest$parameters[['beta.lin']],
-                          F0 = 0.,
-                          R0 = 1) # Specify parameters
+                          F0 = 0,
+                          R0 = 100) # Specify parameters
 
   
   
@@ -176,7 +169,7 @@ for(i in 1:nruns){
   set.seed(seeds[i])
   
   
-  df <- load_data_seasons(nseason = 1,
+  dfb <- load_data_seasons(nseason = 1,
                           nyear = 200,# Set up parameters 
                           Linf = 150, 
                           maxage = 10,
@@ -191,17 +184,17 @@ for(i in 1:nruns){
                           recruitment = 'BH_steep',
                           negg = codest$parameters[['alpha.hyper']],
                           eggbeta = codest$parameters[['beta.hyper']],
-                          F0 = 0.0,
-                          R0 = 1) # Specify parameters
+                          F0 = 0,
+                          R0 = 100) # Specify parameters
 
   
   
-  tmprun <- run.agebased.true.catch(df, seed = seeds[i])
+  tmprunb <- run.agebased.true.catch(dfb, seed = seeds[i])
   
-  df.save.boff[df.save.boff$run == i,]$SSB <- tmprun$SSB
-  df.save.boff[df.save.boff$run == i,]$R <- tmprun$R.save
-  df.save.boff[df.save.boff$run == i,]$Rtot <- tmprun$Rtot.save
-  df.save.boff[df.save.boff$run == i,]$Catch <- tmprun$Catch
+  df.save.boff[df.save.boff$run == i,]$SSB <- tmprunb$SSB
+  df.save.boff[df.save.boff$run == i,]$R <- tmprunb$R.save
+  df.save.boff[df.save.boff$run == i,]$Rtot <- tmprunb$Rtot.save
+  df.save.boff[df.save.boff$run == i,]$Catch <- tmprunb$Catch
   
 }
 
