@@ -55,8 +55,8 @@ seeds <- round(runif(n = nruns, min = 1,  max = 1e6))
 
 
 
-alpha <- 100
-beta <- 5
+alpha <- 10
+beta <- 1e-6
 # 
 SSBtest <- seq(1, alpha/beta+100, length.out = 1000)
 bhmodel <- plotRecruitment('BH', S = SSBtest, df = list(alpha = alpha, beta = beta))
@@ -66,35 +66,44 @@ plot(SSBtest,bhmodel, type = 'l', ylab = 'recruitment', xlab = 'egg production')
 # Calculate max number of eggs assuming 1 recruit distribution 
 
 df <- load_data_seasons(nseason = 1,
-                        nyear = 200,# Set up parameters 
+                        nyear = 100,# Set up parameters 
                         Linf = 150, 
                         maxage = 10,
                         h = 0.4,
-                        K = .4, 
+                        K = .6, 
                         t0 = 0, 
-                        SDR = 0., # Recruitment deviations 
+                        SDR = .0, # Recruitment deviations 
                         fishing.type = 'constant',
                         mortality = 'constant',
                         alpha = alpha,
                         beta = beta,
-                        recruitment = 'BH_steep',
+                        recruitment = 'BH_R',
+                        recruitment.type = 'AR',
+                        rhoR = .75, # Determines the amount of autocorrelation
                         negg = codest$parameters[['alpha.lin']],
                         eggbeta = codest$parameters[['beta.lin']],
-                        F0 = 0.,
-                        R0 = 1) # Specify parameters
+                        F0 = 0,
+                        R0 = 1000) # Specify parameters
+
 tmp <- run.agebased.true.catch(df)
 
 plot(tmp$SSB, type ='l', log = 'y')
 
 
-plot(tmp$R.save, type ='l')
+plot(tmp$R.save, ylim = c(0, tmp$R0))
+lines(1:100,rep(tmp$R0,100))
 
 
-SSBtest <- seq(1, max(tmp$Rtot.save), length.out = 1000)
-bhmodel <- plotRecruitment('BH_steep', S = SSBtest, df = df)
-plot(SSBtest,bhmodel, type = 'l', xlim = c(1,max(tmp$Rtot.save)), ylim = c(1,max(tmp$R.save)),
-     log = 'y')
-points(tmp$Rtot.save,tmp$R.save)
+
+
+ plot(tmp$R.save, type ='l')
+
+
+# SSBtest <- seq(1, max(tmp$Rtot.save), length.out = 1000)
+# bhmodel <- plotRecruitment('BH_steep', S = SSBtest, df = df)
+# plot(SSBtest,bhmodel, type = 'l', xlim = c(1,max(tmp$Rtot.save)), ylim = c(1,max(tmp$R.save)),
+#      log = 'y')
+# points(tmp$Rtot.save,tmp$R.save)
 
 
 df.save <- data.frame(years = rep(df$years, nruns),
@@ -118,7 +127,7 @@ for(i in 1:nruns){
                           h = 0.4,
                           K = .4, 
                           t0 = 0, 
-                          SDR = 0.0, # Recruitment deviations 
+                          SDR = 0.5, # Recruitment deviations 
                           fishing.type = 'constant',
                           mortality = 'constant',
                           alpha = alpha,
@@ -126,7 +135,7 @@ for(i in 1:nruns){
                           recruitment = 'BH_steep',
                           negg = codest$parameters[['alpha.lin']],
                           eggbeta = codest$parameters[['beta.lin']],
-                          F0 = 0,
+                          F0 = 0.2,
                           R0 = 100) # Specify parameters
 
   
@@ -176,7 +185,7 @@ for(i in 1:nruns){
                           h = 0.4,
                           K = .4, 
                           t0 = 0, 
-                          SDR = 0.0, # Recruitment deviations 
+                          SDR = 0.5, # Recruitment deviations 
                           fishing.type = 'constant',
                           mortality = 'constant',
                           alpha = alpha,
@@ -184,7 +193,7 @@ for(i in 1:nruns){
                           recruitment = 'BH_steep',
                           negg = codest$parameters[['alpha.hyper']],
                           eggbeta = codest$parameters[['beta.hyper']],
-                          F0 = 0,
+                          F0 = 0.2,
                           R0 = 100) # Specify parameters
 
   

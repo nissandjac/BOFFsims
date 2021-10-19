@@ -58,7 +58,16 @@ run.agebased.true.catch <- function(df, seed = 123){
   
 
   if(df$recruitment == 'BH_steep'){
-    R0 <- df$Rmax
+    R0 <- exp(df$parms$logRinit)
+  }
+  
+  
+  if(df$recruitment == 'BH'){
+    R0 <- df$alpha/df$beta
+  }
+  
+  if(df$recruitment == 'Ricker'){
+    R0 <- 1/df$beta
   }
   
   Mage <- cumsum(M[1,])#c(0,cumsum(M[1,1:(nage-1)]))
@@ -91,14 +100,17 @@ run.agebased.true.catch <- function(df, seed = 123){
   # N0[nage] <- sum(N0tmp[nage:nagetmp])
   # 
   SSB_0 <- NA
+  Rprod0 <- NA
   
   for(i in 1:nspace){
     #SSB_0[i] <- sum(df$Matsel*N0*move.init[i])
     SSB_0[i] <- sum(N0*df$wage_ssb[,1]*df$Matsel)
+    Rprod0[i] <- sum(N0*df$Matsel*df$egg.size)
   }
   names(SSB_0) <- paste(rep('space',each = df$nspace),1:nspace)
   
   R_0 <- R0#*move.init
+  #R0_tot <- R0
   # Used the inital recruitment devs to get a start
   
   
@@ -217,11 +229,21 @@ run.agebased.true.catch <- function(df, seed = 123){
     Fage_past <- rep(0, nage)
   }
   
+  # if(recruitment != 'BH_steep'){
+    Rprod0 <- R0
+  # }
+  
+  
+  
   Ninit[1] <- R0
   Ninit[2:(nage-1)] <-R0 * exp(-(Mage[1:(nage-2)]+Fage_past[1:(nage-2)]))*exp(-0.5*SDR^2*0+Ninit_dev[1:(nage-2)])
   Ninit[nage] <- R0*exp(-((Mage[nage-1]+Fage_past[nage-1])))/(1-exp(-(M[1,nage]+Fpast[nage])))*exp(-0.5*SDR^2*0+Ninit_dev[nage-1])# Plus group (ignore recruitment dev's in first year )
   
   #p.save <-matrix(NA,tEnd)
+  # SSB_0[i] <- sum(Ninit*df$wage_ssb[,1]*df$Matsel)
+  # Rprod0[i] <- sum(N0*df$Matsel*df$egg.size)
+  # 
+  
   
   
   for (space in 1:nspace){
@@ -318,17 +340,16 @@ run.agebased.true.catch <- function(df, seed = 123){
         N.save.age[1,yr,space,1] <- 0 # No recruits yet (avoid NA calculation)
         # Calculate eggs per individual   
         Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size)
-        Req <- exp(df$parms$logRinit)
-        
-        
-        R <- (4*h*R0*Rtot/
-              (Req*(1-h)+ Rtot*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
-        
-        # 
-        # R <- (4*h*R_0[space]*SSB[yr,space]/
-        #         (SSB_0[space]*(1-h)+ SSB[yr,space]*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
 
-        
+        # 
+        R <- (4*h*R_0*Rtot/
+               (R_0*(1-h)+ Rtot*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
+
+        # 
+        R <- (4*h*R_0[space]*SSB[yr,space]/
+                (SSB_0[space]*(1-h)+ SSB[yr,space]*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
+
+        print('hm fix issues with this SR function')
       }
       
       
@@ -354,6 +375,19 @@ run.agebased.true.catch <- function(df, seed = 123){
         R <- Rtot
         
       }
+      
+      
+      if(recruitment == 'BH_R'){
+        
+        
+        Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size, na.rm = TRUE)
+        
+        R <- R0*Rtot/(Rtot+R0)
+        
+        
+      }
+      
+      
       
       if(R < 1e-10){ # Remove numerical instability
         R <- 0
@@ -672,7 +706,8 @@ run.agebased.true.catch <- function(df, seed = 123){
                      age_comps_catch_space = age_comps_catch_space,
                      Fseason = Fseason.save,
                      Fsel = Fsel.save, 
-                     Ninit = Ninit)
+                     Ninit = Ninit,
+                     R0 = Rprod0)
 
   return(df.out)
     

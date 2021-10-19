@@ -23,6 +23,8 @@ load_data_seasons <- function(nseason = 1,
                               movefiftyinit = 6,
                               nsurvey = 2, 
                               SDR = .6, 
+                              rhoR = 0.7,
+                              recruitment.type = 'random',
                               Fpast = 0,
                               bfuture = 0.5,
                               moveout = 0.85, 
@@ -305,8 +307,34 @@ load_data_seasons <- function(nseason = 1,
   }
   
   # Insert Rdev function here 
-  Rdev <- rnorm(nyear, mean = 0, sd = SDR)
+  Rdev <- NA
+  
+  if(recruitment.type  == 'random'){
+    Rdev <- rnorm(nyear, mean = 0, sd = SDR)
+  }
+  
+  if(recruitment.type == 'AR'){
     
+    Rdev <- rep(0, nyear)
+    Rdev[1] <- 0#rnorm(1, mean = 0, sd = SDR)
+
+    omegaR <- rep(NA, nyear)
+    omegaR[1] <- 0
+    
+    for(i in 2:nyear){
+      
+      omegaR[i] <- rhoR*omegaR[i-1]+sqrt(1-rhoR^2)*rnorm(1,mean = 0,sd = SDR)
+      #Rdev[i]<- omegaR[i]-0.5*(SDR^2)
+      
+      
+    }
+    Rdev <- omegaR
+    
+    
+  }
+  
+  
+  
   if(length(b) == 1){
   bout <- rep(b, nyear)
   }
@@ -430,9 +458,9 @@ load_data_seasons <- function(nseason = 1,
             )
   
   
-  Rmax <- getEquilibrium(df)
-  df$Rmax <- Rmax
-  
+  # Rmax <- getEquilibrium(df)
+  # df$Rmax <- Rmax
+  # 
   
   
   # Fix some things 
