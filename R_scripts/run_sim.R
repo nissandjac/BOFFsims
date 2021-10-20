@@ -66,7 +66,7 @@ plot(SSBtest,bhmodel, type = 'l', ylab = 'recruitment', xlab = 'egg production')
 # Calculate max number of eggs assuming 1 recruit distribution 
 
 df <- load_data_seasons(nseason = 1,
-                        nyear = 100,# Set up parameters 
+                        nyear = 200,# Set up parameters 
                         Linf = 150, 
                         maxage = 10,
                         h = 0.4,
@@ -82,29 +82,21 @@ df <- load_data_seasons(nseason = 1,
                         rhoR = .75, # Determines the amount of autocorrelation
                         negg = codest$parameters[['alpha.lin']],
                         eggbeta = codest$parameters[['beta.lin']],
-                        F0 = 0,
+                        F0 = 0.5,
                         R0 = 1000) # Specify parameters
 
 tmp <- run.agebased.true.catch(df)
 
-plot(tmp$SSB, type ='l', log = 'y')
 
 
-plot(tmp$R.save, ylim = c(0, tmp$R0))
-lines(1:100,rep(tmp$R0,100))
-
-
-
-
- plot(tmp$R.save, type ='l')
-
-
-# SSBtest <- seq(1, max(tmp$Rtot.save), length.out = 1000)
-# bhmodel <- plotRecruitment('BH_steep', S = SSBtest, df = df)
-# plot(SSBtest,bhmodel, type = 'l', xlim = c(1,max(tmp$Rtot.save)), ylim = c(1,max(tmp$R.save)),
-#      log = 'y')
-# points(tmp$Rtot.save,tmp$R.save)
-
+Linf <- 150
+maxage <- 12
+K <- 0.4
+t0 <- 0
+SDR <- 0.5
+F0 <- 0.5
+R0 <- 1000
+recruitment <- 'BH_R'
 
 df.save <- data.frame(years = rep(df$years, nruns),
                            SSB = NA,
@@ -122,21 +114,21 @@ for(i in 1:nruns){
   
   df <- load_data_seasons(nseason = 1,
                           nyear = 200,# Set up parameters 
-                          Linf = 150, 
-                          maxage = 10,
-                          h = 0.4,
-                          K = .4, 
-                          t0 = 0, 
-                          SDR = 0.5, # Recruitment deviations 
+                          Linf = Linf, 
+                          maxage = maxage,
+                          K = K, 
+                          t0 = t0, 
+                          SDR = SDR, # Recruitment deviations 
                           fishing.type = 'constant',
                           mortality = 'constant',
                           alpha = alpha,
                           beta = beta,
-                          recruitment = 'BH_steep',
+                          recruitment = recruitment,
+                          recruitment.type = 'AR',
                           negg = codest$parameters[['alpha.lin']],
                           eggbeta = codest$parameters[['beta.lin']],
-                          F0 = 0.2,
-                          R0 = 100) # Specify parameters
+                          F0 = F0,
+                          R0 = R0) # Specify parameters
 
   
   
@@ -180,22 +172,21 @@ for(i in 1:nruns){
   
   dfb <- load_data_seasons(nseason = 1,
                           nyear = 200,# Set up parameters 
-                          Linf = 150, 
-                          maxage = 10,
-                          h = 0.4,
-                          K = .4, 
-                          t0 = 0, 
-                          SDR = 0.5, # Recruitment deviations 
+                          Linf = Linf, 
+                          maxage = maxage,
+                          K = K, 
+                          t0 = t0, 
+                          SDR = SDR, # Recruitment deviations 
                           fishing.type = 'constant',
                           mortality = 'constant',
                           alpha = alpha,
                           beta = beta,
-                          recruitment = 'BH_steep',
+                          recruitment = recruitment,
+                          recruitment.type = 'AR',
                           negg = codest$parameters[['alpha.hyper']],
                           eggbeta = codest$parameters[['beta.hyper']],
-                          F0 = 0.2,
-                          R0 = 100) # Specify parameters
-
+                          F0 = F0,
+                          R0 = R0) # Specify parameters
   
   
   tmprunb <- run.agebased.true.catch(dfb, seed = seeds[i])
@@ -240,7 +231,15 @@ ggplot(df.plot,aes(x = SSB, y = Rtot, color = model))+geom_point()+theme_classic
 
 
 
-ggplot(df.sumplot, aes(x = years, y = S, color = model))+geom_line()+theme_classic()+
+ggplot(df.sumplot[df.sumplot$years > 100,], aes(x = years, y = S, color = model))+geom_line()+theme_classic()+
 #  geom_hline(aes(yintercept = tmprun$SSB_0))+
   geom_ribbon(aes(ymin = Smin, ymax = Smax), fill = 'red', alpha = 0.1, linetype = 0)
+
+
+
+
+ggplot(df.sumplot, aes(x = years, y = Rec, color = model, fill = model))+geom_line()+theme_classic()+
+  #  geom_hline(aes(yintercept = tmprun$SSB_0))+
+  geom_ribbon(aes(ymin = Recmin, ymax = Rmax), alpha = 0.1, linetype = 0)
+
 

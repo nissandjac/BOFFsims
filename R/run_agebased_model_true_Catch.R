@@ -372,7 +372,7 @@ run.agebased.true.catch <- function(df, seed = 123){
         Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size, na.rm = TRUE)
         #Rtot <- SSB[yr,space]
         
-        R <- Rtot
+        R <- Rtot*exp(-0.5*df$b[yr]*SDR^2+Ry)#
         
       }
       
@@ -382,7 +382,7 @@ run.agebased.true.catch <- function(df, seed = 123){
         
         Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size, na.rm = TRUE)
         
-        R <- R0*Rtot/(Rtot+R0)
+        R <- R0*Rtot/(Rtot+R0)*exp(-0.5*df$b[yr]*SDR^2+Ry)#
         
         
       }
