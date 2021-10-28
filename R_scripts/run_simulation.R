@@ -11,7 +11,8 @@ source('R/load_data_seasons.R')
 source('R/est_eggs.R')
 source('R/plotRecruitment.R')
 source('R/getEquilibrium.R')
-
+source('R/Iteratesims_F.R')
+source('R/Iteratesims_SDR.R')
 # Load the data frame with eggs 
 
 eggs <- read.csv('data/fecundityEggSizeFemaleSize.csv')
@@ -76,7 +77,7 @@ for(i in 1:nruns){
   tmprun <- run.agebased.true.catch(df)
   
   # Iterate over fishing mortalities
-  ls.lin <- Iteratesims_F(df, Fin = round(seq(0,.5, length.out = 20), digits = 2)) # Run over 30 fishing mortalities
+  ls.lin <- Iteratesims_F(df, Fin = round(seq(0,1, length.out = 20), digits = 2)) # Run over 30 fishing mortalities
   
   if(i == 1){
     df.out <- ls.lin[[1]]
@@ -116,7 +117,7 @@ for(i in 1:nruns){
   tmprun <- run.agebased.true.catch(df)
   
   # Iterate over fishing mortalities
-  ls.lin <- Iteratesims_F(df, Fin = round(seq(0,.5, length.out = 20), digits = 2),
+  ls.lin <- Iteratesims_F(df, Fin = round(seq(0,1, length.out = 20), digits = 2),
                           model = 'hyper') # Run over 30 fishing mortalities
   
   if(i == 1){
@@ -155,21 +156,30 @@ df.sum <- df.tot %>% group_by(years, model,F0) %>%
 #   facet_wrap(~F0, scales = 'free_y'))
 #   theme_bw()
 
-ggplot(df.sum[df.sum$years > 30,], aes(x = years, y = S, color = model))+geom_line()+
+
+
+p1 <- ggplot(df.sum[df.sum$years > 30,], aes(x = years, y = S, color = model))+geom_line()+
   facet_wrap(~F0, scales = 'free_y')+theme_bw()+
   geom_ribbon(aes(ymin = Smin, ymax = Smax, fill = model), alpha = 0.1, linetype = 0)
 
-ggplot(df.sum[df.sum$years > 30,], aes(x = years, y = C, color = model))+geom_line()+
+p2 <- ggplot(df.sum[df.sum$years > 30,], aes(x = years, y = C, color = model))+geom_line()+
   facet_wrap(~F0, scales = 'free_y')+theme_bw()+
   geom_ribbon(aes(ymin = Cmin, ymax = Cmax, fill = model), alpha = 0.1, linetype = 0)
 
 
+# Print 
+png('Boff_SSSB.png', res =400, width = 20, height = 12, units = 'cm')
+p1
+dev.off()
 
+png('Boff_catch.png', res =400, width = 20, height = 12, units = 'cm')
+p2
+dev.off()
 # Run simulation with SDR 
 
 nruns <- 100
 SDRin <- round(seq(0,1, length.out = 20), digits = 2)
-
+F0 <- 0.2
 
 for(i in 1:nruns){
   
@@ -181,7 +191,7 @@ for(i in 1:nruns){
                           maxage = maxage,
                           K = K, 
                           t0 = t0, 
-                          SDR = SDR, # Recruitment deviations 
+                          SDR = SDRin[i], # Recruitment deviations 
                           fishing.type = 'constant',
                           mortality = 'constant',
                           alpha = alpha,
@@ -199,13 +209,13 @@ for(i in 1:nruns){
   ls.lin <- Iteratesims_SDR(df, SDRin = SDRin) # Run over 30 fishing mortalities
   
   if(i == 1){
-    df.out <- ls.lin[[1]]
-    df.out$run <- paste('run', i, sep = '-')
+    df.out.SDR <- ls.lin[[1]]
+    df.out.SDR$run <- paste('run', i, sep = '-')
   }else{
     tmp <- ls.lin[[1]]
     tmp$run <- paste('run', i, sep = '-')
     
-    df.out <- rbind(df.out,tmp)
+    df.out <- rbind(df.out.SDR,tmp)
   }
   
 }
@@ -221,7 +231,7 @@ for(i in 1:nruns){
                           maxage = maxage,
                           K = K, 
                           t0 = t0, 
-                          SDR = SDR, # Recruitment deviations 
+                          SDR = SDRin[i], # Recruitment deviations 
                           fishing.type = 'constant',
                           mortality = 'constant',
                           alpha = alpha,
@@ -276,7 +286,7 @@ df.sum <- df.tot %>% group_by(years, model,SDR) %>%
 #   theme_bw()
 
 ggplot(df.sum[df.sum$years > 30,], aes(x = years, y = S, color = model))+geom_line()+
-  facet_wrap(~SDR, scales = 'free_y')+theme_bw()+
+  facet_wrap(~SDR)+theme_bw()+
   geom_ribbon(aes(ymin = Smin, ymax = Smax, fill = model), alpha = 0.1, linetype = 0)
 
 ggplot(df.sum[df.sum$years > 30,], aes(x = years, y = C, color = model))+geom_line()+

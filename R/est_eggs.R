@@ -76,7 +76,8 @@ est_eggs <- function(x,y){
                    beta.hyper = result$par[[2]])
   
   ls.return <- list(df = df,
-                    parameters = ls.parms)
+                    parameters = ls.parms,
+                    p1)
     
   return(ls.return)
  

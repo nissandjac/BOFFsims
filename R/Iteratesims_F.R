@@ -17,7 +17,7 @@ Iteratesims_F <- function(df,
   
   for(i in 1:length(Fin)){
 
-    df$F0 <- df$F0*0+dchange[i] # Just make sure they're the same length
+    df$F0 <- df$F0*0+Fin[i] # Just make sure they're the same length
     
     tmprun <- run.agebased.true.catch(df, seed = seeds[i])
     
