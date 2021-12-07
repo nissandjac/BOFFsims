@@ -382,7 +382,28 @@ run.agebased.true.catch <- function(df, seed = 123){
         
         Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size, na.rm = TRUE)
         
-        R <- R0*Rtot/(Rtot+R0)*exp(-0.5*df$b[yr]*SDR^2+Ry)#
+        
+        # Regulate R0 based on the lambda function 
+        x <- sum(N.save.age[df$age >= df$tau,yr,,]*df$Matsel[df$age >= df$tau]*df$egg.size[df$age >= df$tau])/
+          sum(N.save.age[,yr,,]*df$Matsel*df$egg.size, na.rm  =TRUE)
+        
+        
+        if(is.na(df$lambda)){
+          R0_boff <- R0
+        }else{
+         R0_boff <- R0*1/(exp(-df$lambda.slope*(x-lambda)))
+        }
+        
+        
+        
+        
+        # if(yr == 1){
+        #   print(df$lambda.slope)
+        # }
+        
+        # print(round(R0_boff/R0, 3))
+
+        R <- R0_boff*Rtot/(Rtot+R0_boff)*exp(-0.5*df$b[yr]*SDR^2+Ry)#
         
         
       }

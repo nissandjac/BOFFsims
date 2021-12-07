@@ -14,6 +14,7 @@ load_data_seasons <- function(nseason = 1,
                               M = 0.2,
                               b = 1,
                               R0 = 1e4,
+                              BOFF = 1,
                               h = 0.8,
                               q = 1,
                               smul = 0.5,
@@ -49,6 +50,8 @@ load_data_seasons <- function(nseason = 1,
                               beta = 1, 
                               negg = rep(1, nage),
                               eggbeta = 1,
+                              lambda = NA,
+                              lambda.slope= 0.2,
                               seed = NA
                               ){
   
@@ -402,6 +405,7 @@ load_data_seasons <- function(nseason = 1,
                   Matsel= as.numeric(mat),
                   nage = nage,
                   age = age,
+                  tau = tau,
                   nseason = nseason,
                   nyear = nyear,
                   tEnd = tEnd, 
@@ -443,6 +447,7 @@ load_data_seasons <- function(nseason = 1,
                   Catch = catch,
                   catch.true = catch.true,
                   F0 = F0,
+                  BOFF = BOFF,
                   SDM = SDM,
                   rho = rho,
                   omega = omega,
@@ -451,7 +456,9 @@ load_data_seasons <- function(nseason = 1,
                   recruitment = recruitment,
                   alpha = alpha,
                   beta = beta,
-                  egg.size = egg.size
+                  egg.size = egg.size,
+                  lambda = lambda,
+                  lambda.slope = lambda.slope
                   
                 
                   # Parameters from the estimation model 
