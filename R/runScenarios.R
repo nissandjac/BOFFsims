@@ -15,6 +15,7 @@ runScenarios <- function(models = c('linear','hyper'),
                          F0 = 0,
                          R0 = 1000,
                          h = 0.4,
+                         rho = 0.001,
                          recruitment = 'BH_R',
                          recruitment.type = 'AR',
                          fishing.type = 'constant',
@@ -58,12 +59,18 @@ runScenarios <- function(models = c('linear','hyper'),
   
   
   
-  
-  for(k in 1:length(models)){
+  for(s in 1:length(rho)){
     
-    for(j in 1:length(recLambda)){
+    for(k in 1:length(models)){
+    
+      for(j in 1:length(recLambda)){
+      
+        for(p in 1:length(F0)){
+      
       
       df.save <- data.frame(years = rep(1:years, nruns),
+                            F0 = F0[p],
+                            rho = rho[s],
                             SSB = NA,
                             R = NA,
                             Rtot = NA,
@@ -113,7 +120,8 @@ runScenarios <- function(models = c('linear','hyper'),
                                 recruitment.type = recruitment.type,
                                 negg = negg,
                                 eggbeta = eggbeta,
-                                F0 = F0,
+                                F0 = F0[p],
+                                rho = rho[s],
                                 R0 = R0,
                                 lambda = lambda,
                                 lambda.slope = lambda.slope) # Specify parameters
@@ -127,6 +135,7 @@ runScenarios <- function(models = c('linear','hyper'),
         df.save[df.save$run == i,]$R <- tmprun$R.save
         df.save[df.save$run == i,]$Rtot <- tmprun$Rtot.save
         df.save[df.save$run == i,]$Catch <- tmprun$Catch
+        df.save[df.save$run == i,]$F0 <- F0[p]
         
       }
       
@@ -141,10 +150,13 @@ runScenarios <- function(models = c('linear','hyper'),
                   Recmin = quantile(R, probs = 0.05),
                   Rmax = quantile(R, probs = 0.95),
                   Cmin = quantile(Catch, probs = 0.05),
-                  Cmax = quantile(Catch, probs = 0.95)
+                  Cmax = quantile(Catch, probs = 0.95),
+                  F0 = median(F0[p])
         )
       
-      if(j == 1 & k == 1){
+      
+      
+      if(j == 1 & k == 1 & p == 1){
         df.sum.out <- df.sum
         df.save.out <- df.save
       }else{
@@ -154,9 +166,10 @@ runScenarios <- function(models = c('linear','hyper'),
       }
       
     }
+    }
   }
   
-  
+  }
   
 return(list(df.sum = df.sum.out,
            df.save = df.save.out))  

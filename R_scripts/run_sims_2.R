@@ -61,9 +61,9 @@ F0 <- 0.2
 R0 <- 1000
 M <- 0.4
 recruitment <- 'BH_R'
-lambda.slope <- .3
+lambda.slope <- .7
 
-
+Fin <- seq(0,1, length.out = 15)
 
 ls.plot <- runScenarios(models = c('linear','hyper'),
                         recLambda = c('noBOFF','BOFF'),
@@ -72,24 +72,44 @@ ls.plot <- runScenarios(models = c('linear','hyper'),
                         egg.df = codest, 
                         lambda.slope = lambda.slope,
                         SDR = SDR,
-                        F0 = F0)
+                        F0 = Fin)
 
 # Run all the models 
 
-p1 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years > 50,], aes(x = years, y = S, color = model, fill = model))+geom_line()+
-  geom_ribbon(aes(ymin = Smin, ymax = Smax), show.legend = FALSE, alpha = 0.1, linetype = 0)+theme_classic()
+p1 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years > 50 & ls.plot[[1]]$F0 == Fin[4],], aes(x = years, y = S, color = model, fill = model))+geom_line()+
+  geom_ribbon(aes(ymin = Smin, ymax = Smax), show.legend = FALSE, alpha = 0.1, linetype = 0)+theme_classic()+theme(legend.position = 'top')
 
-p2 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years > 50,], aes(x = years, y = C, color = model, fill = model))+geom_line()+
-  geom_ribbon(aes(ymin = Cmin, ymax = Cmax), show.legend = FALSE, alpha = 0.1, linetype = 0)+theme_classic()
+p2 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years > 50 & ls.plot[[1]]$F0 == Fin[4],], aes(x = years, y = C, color = model, fill = model))+geom_line()+
+  geom_ribbon(aes(ymin = Cmin, ymax = Cmax), show.legend = FALSE, alpha = 0.1, linetype = 0)+theme_classic()+theme(legend.position = 'none')
 
-p3 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years > 50,], aes(x = years, y = Rec, color = model, fill = model))+geom_line()+
-  geom_ribbon(aes(ymin = Recmin, ymax = Rmax), show.legend = FALSE, alpha = 0.1, linetype = 0)+theme_classic()
+p3 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years > 50 & ls.plot[[1]]$F0 == Fin[4],], aes(x = years, y = Rec, color = model, fill = model))+geom_line()+
+  geom_ribbon(aes(ymin = Recmin, ymax = Rmax), show.legend = FALSE, alpha = 0.1, linetype = 0)+theme_classic()+theme(legend.position = 'none')
 
-# p4 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years > 50,], aes(x = years, y = Rtot, color = model, fill = model))+
-#   geom_line()+theme_classic()
+ p4 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years > 50 & ls.plot[[1]]$F0 == Fin[4],], aes(x = years, y = Rtot, color = model, fill = model))+
+   geom_line()+theme_classic()+theme(legend.position = 'none')
 # p4
 
 
-p1/p2/p3
+p1/p2/p3/p4
 
 
+png('figures/boff_stuff_combined.png', res = 400, width = 20, height = 15, units = 'cm')
+p1/p2/p3/p4
+dev.off()
+
+p5 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years == 99,], aes(x = F0,y = Rec, color = model, fill = model))+geom_line(size = 1.1)+
+  geom_ribbon(aes(ymin = Recmin, ymax = Rmax), show.legend = FALSE, alpha = 0.1, linetype = 0)+theme_classic()+theme(legend.position = 'top')
+p6 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years == 99,], aes(x = F0,y = S, color = model, fill = model))+geom_line(size = 1.1)+
+  geom_ribbon(aes(ymin = Smin, ymax = Smax), show.legend = FALSE, alpha = 0.1, linetype = 0)+theme_classic()+theme(legend.position = 'none')
+p7 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years == 99,], aes(x = F0,y = C, color = model, fill = model))+geom_line()+
+  geom_ribbon(aes(ymin = Cmin, ymax = Cmax), show.legend = FALSE, alpha = 0.1, linetype = 0)+theme_classic()+theme(legend.position = 'none')
+p8 <- ggplot(ls.plot[[1]][ls.plot[[1]]$years == 99,], aes(x = F0,y = Rtot, color = model))+geom_line()+theme_classic()+theme(legend.position = 'none')
+
+png('figures/boff_stuff_F0.png', res = 400, width = 20, height = 15, units = 'cm')
+p5/p6/p7/p8
+dev.off()
+
+
+
+
+# 
