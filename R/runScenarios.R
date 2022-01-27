@@ -79,8 +79,23 @@ runScenarios <- function(models = c('linear','hyper'),
                             model = paste(models[k],recLambda[j], sep = '-'))
       
       
+        df.N <- data.frame( years = rep(rep(1:years, nruns), each = maxage+1),
+                            F0 = F0[p],
+                            rho = rho[s],
+                            age = rep(0:maxage, nruns*length(1:years)),
+                            N = NA,
+                            Rdev = NA,
+                            weight = NA,
+                            mat = NA,
+                            Catch = NA, 
+                            run = rep(rep(1:nruns, each = years), each = maxage+1),
+                            model = paste(models[k],recLambda[j], sep = '-'))
+      
+      
+      
       
       for(i in 1:nruns){
+        
         set.seed(seeds[i])
         
         
@@ -137,6 +152,14 @@ runScenarios <- function(models = c('linear','hyper'),
         df.save[df.save$run == i,]$Catch <- tmprun$Catch
         df.save[df.save$run == i,]$F0 <- F0[p]
         
+        
+        df.N[df.N$run == i,]$N <- as.numeric(tmprun$N.save.age[,1:years,,])
+        df.N[df.N$run == i,]$weight <- as.numeric(df$wage_ssb)
+        df.N[df.N$run == i,]$mat <- rep(df$Matsel, years)
+        df.N[df.N$run == i,]$Catch <- as.numeric(tmprun$Catch.age)
+        df.N[df.N$run == i,]$F0 <- F0[p]
+        df.N[df.N$run == i,]$Rdev <- rep(df$parms$Rin, each = maxage+1)
+        
       }
       
       
@@ -159,10 +182,12 @@ runScenarios <- function(models = c('linear','hyper'),
       if(j == 1 & k == 1 & p == 1){
         df.sum.out <- df.sum
         df.save.out <- df.save
+        df.N.out <- df.N
       }else{
         
         df.sum.out <- rbind(df.sum.out, df.sum)
         df.save.out <- rbind(df.save.out,df.save)
+        df.N.out <- rbind(df.N.out, df.N)
       }
       
     }
@@ -172,7 +197,8 @@ runScenarios <- function(models = c('linear','hyper'),
   }
   
 return(list(df.sum = df.sum.out,
-           df.save = df.save.out))  
+           df.save = df.save.out,
+           df.N  = df.N.out))  
   
   
 }

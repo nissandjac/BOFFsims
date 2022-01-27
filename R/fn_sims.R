@@ -1,0 +1,184 @@
+# Run egg trial thingie # 
+fn_sims <- function(tau = 5,
+                    Linf = 150,
+                    maxage = 10,
+                    K = 0.6,
+                    t0 = 0,
+                    SDR = 0.5,
+                    F0 = 0.2,
+                    M = 0.4,
+                    R0 = 1000,
+                    recruitment = 'BH_R',
+                    lambda.slope = .7,
+                    mortality = 'constant',
+                    fishing.type = 'constant',
+                    recruitment = 'AR'
+                    ){
+
+  require('tidyverse')
+  require('patchwork')
+  source('R/calcSSB0.R')
+  source('R/run_agebased_model_true_Catch.R')
+  source('R/load_data_seasons.R')
+  source('R/est_eggs.R')
+  source('R/plotRecruitment.R')
+  source('R/getEquilibrium.R')
+  source('R/runScenarios.R')
+# Just use cod for fun
+  eggs <- read.csv('data/fecundityEggSizeFemaleSize.csv')
+  eggs$weight <- 0.01*(eggs$FemaleSize_mm/10)^3 # Fix this later
+  # All eggs as a function of size 
+  
+  eggs <- eggs %>% group_by(Species) %>% mutate(relweight = weight/max(weight),
+                                                releggs = Fecundity_nOfEggs_per_female/max(Fecundity_nOfEggs_per_female)
+  )
+  
+  
+  x <- eggs[is.na(eggs$relweight) == 0,]$relweight
+  y <- eggs[is.na(eggs$relweight) == 0,]$releggs
+  
+  
+  # all relative eggs 
+  #parms <- est_eggs(x,y)
+  
+  
+  
+  # Just take the cod eggs most of the other fish are not really big fisheries 
+  cod <- eggs[eggs$Species == 'Gadus morhua',]
+  
+  cod$weight <- 0.01*(cod$FemaleSize_mm/10)^3 # Fix the parameters for weight lenght to whatever here 
+  
+  codest <- est_eggs(x = cod$weight,
+                     y = cod$Fecundity_nOfEggs_per_female)
+  
+  
+  
+  # This df is just used for later calcs 
+  df <- load_data_seasons(nseason = 1,
+                          nyear = 100,# Set up parameters 
+                          Linf = Linf, 
+                          maxage = maxage,
+                          tau = tau,
+                          K = K, 
+                          t0 = t0, 
+                          M= M,
+                          SDR = 0, # Recruitment deviations - set to zero to calculate lambda
+                          fishing.type = 'constant',
+                          mortality = 'constant',
+                          recruitment = recruitment,
+                          negg = codest$parameters[['alpha.lin']],
+                          eggbeta = codest$parameters[['beta.lin']],
+                          F0 = 0, # Set to zero to calc lambda
+                          R0 = R0) # Specify parameters
+  
+  
+  
+  
+  Fin <- F0
+  
+  ls.plot <- runScenarios(models = c('linear','hyper'),
+                          recLambda = c('noBOFF','BOFF'),
+                          runLambda = FALSE,
+                          lambda.in = .4,
+                          egg.df = codest, 
+                          lambda.slope = lambda.slope,
+                          SDR = SDR,
+                          F0 = Fin)
+  
+  # Run all the models 
+  
+
+  
+  
+  # Make Mikaels figures # 
+  
+  df.N <- ls.plot[[3]]
+  
+  df.N$SSB <- df.N$N*df.N$weight*df.N$mat
+  
+  
+  ## Summarise the data frame to  plot it 
+  df.N$old <- NA
+  pold <- tau
+  
+  df.N$old[df.N$age < pold] <- 'young'
+  df.N$old[df.N$age >= pold] <- 'old'
+  
+  
+  
+  df.Nsum <- df.N %>% 
+    group_by(years, F0, model, old, run) %>% 
+    summarise(N = sum(N),
+              Catch = sum(Catch),
+              SSB=  sum(SSB),
+              Rdev = mean(Rdev)) %>% arrange(run, old) # The Rdev mean is not a mean (it's the same for all ) 
+  
+  # Get median weight weighted by numbers
+  
+  df.wSum <- df.N %>% 
+    group_by(years, F0, model ,run) %>%
+    summarise(mWeight = weighted.mean(weight, N),
+              mAge = weighted.mean(age, N)) %>% arrange(run)
+  
+  
+  
+  # Rearrange ls.plot[22]
+  
+  R.df <- ls.plot[[2]] %>% arrange(run, years)
+  
+  
+  
+  df.propOld <- data.frame(propOld = df.Nsum$N[df.Nsum$old == 'young']/df.Nsum$N[df.Nsum$old == 'old'],
+                           SSBprop = df.Nsum$SSB[df.Nsum$old == 'young']/df.Nsum$SSB[df.Nsum$old == 'old'],
+                           years = df.Nsum$years[df.Nsum$old == 'old'],
+                           model = df.Nsum$model[df.Nsum$old == 'old'],
+                           run = df.Nsum$run[df.Nsum$old == 'old'],
+                           Rdev = df.Nsum$Rdev[df.Nsum$old == 'old'],
+                           mweight = df.wSum$mWeight,
+                           mage = df.wSum$mAge,
+                           rec = R.df$R,
+                           recR0 = R.df$R/exp(df$parms$logRinit),
+                           rtot = R.df$Rtot
+  )
+  
+  
+  # 
+  # 
+  # df.propSum <- df.propOld %>% 
+  #   group_by( years, model) %>% 
+  #   summarise(propN = median(propOld),
+  #             propSSB = median(SSBprop),
+  #             mWeight = median(mweight),
+  #             mAge = median(mage)) %>% 
+  #   pivot_longer(cols = 3:6)
+  # 
+  # 
+  # 
+  # ggplot(df.propSum[df.propSum$years > 50,], aes(x = years, y= value, color = model))+geom_line()+facet_wrap(~name, scales = 'free_y')
+  
+  # Try the correlation coefficients 
+  
+  prop.plot <- df.propOld %>% group_by(model, run) %>% summarise(SSBcorRR0  = cor(SSBprop, recR0),
+                                                                weightcorRR0  = cor(mweight, recR0),
+                                                                agecorRR0  = cor(mage, recR0),
+                                                                SSBcorRtot  = cor(SSBprop, rtot),
+                                                                weightcorRtot  = cor(mweight, rtot),
+                                                                agecorRtot  = cor(mage, rtot),
+                                                                SSBcorRdev  = cor(SSBprop, Rdev),
+                                                                weightcorRdev  = cor(mweight, Rdev),
+                                                                agecorRdev  = cor(mage, Rdev)) %>%
+    pivot_longer(3:11)
+  
+  
+ 
+  
+  print(ggplot(prop.plot, aes(x = model, y = value, fill = model))+geom_violin()+facet_wrap(~name, scales = 'free_y')+scale_x_discrete()+theme(axis.text.x = element_blank())
+  # Create a data frame to save 
+  
+  df.export <- df.propOld
+  
+  
+}
+
+
+
