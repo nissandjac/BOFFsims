@@ -71,7 +71,8 @@ runScenarios <- function(models = c('linear','hyper'),
                             run = rep(1:nruns, each = years),
                             model = paste(models[k],recLambda[j], sep = '-'))
       
-      
+      N.save <- data.frame(years = rep(1:years, nruns*length(0:maxage)),
+                           N = NA)
       
       for(i in 1:nruns){
         set.seed(seeds[i])

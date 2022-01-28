@@ -391,7 +391,7 @@ run.agebased.true.catch <- function(df, seed = 123){
         if(is.na(df$lambda)){
           R0_boff <- R0
         }else{
-         R0_boff <- R0*1/(exp(-df$lambda.slope*(x-lambda)))
+         R0_boff <- R0*1/(exp(-df$lambda.slope*(x-df$lambda)))
         }
         
         
@@ -401,7 +401,7 @@ run.agebased.true.catch <- function(df, seed = 123){
         #   print(df$lambda.slope)
         # }
         
-        # print(round(R0_boff/R0, 3))
+         print(round(R0_boff/R0, 3))
 
         R <- R0_boff*Rtot/(Rtot+R0_boff)*exp(-0.5*df$b[yr]*SDR^2+Ry)#
         

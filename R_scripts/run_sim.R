@@ -65,30 +65,32 @@ plot(SSBtest,bhmodel, type = 'l', ylab = 'recruitment', xlab = 'egg production')
 
 # Calculate max number of eggs assuming 1 recruit distribution 
 
-df <- load_data_seasons(nseason = 1,
-                        nyear = 200,# Set up parameters 
-                        Linf = 150, 
-                        maxage = 10,
-                        h = 0.4,
-                        K = .6, 
-                        t0 = 0, 
-                        SDR = .0, # Recruitment deviations 
-                        fishing.type = 'constant',
-                        mortality = 'constant',
-                        alpha = alpha,
-                        beta = beta,
-                        recruitment = 'BH_R',
-                        recruitment.type = 'AR',
-                        rhoR = .75, # Determines the amount of autocorrelation
-                        negg = codest$parameters[['alpha.lin']],
-                        eggbeta = codest$parameters[['beta.lin']],
-                        F0 = 0.5,
-                        R0 = 1000) # Specify parameters
-
-tmp <- run.agebased.true.catch(df)
-
-
-
+# df <- load_data_seasons(nseason = 1,
+#                         nyear = 200,# Set up parameters
+#                         Linf = 150,
+#                         maxage = 10,
+#                         h = 0.4,
+#                         K = .6,
+#                         t0 = 0,
+#                         SDR = .0, # Recruitment deviations
+#                         fishing.type = 'AR',
+#                         mortality = 'constant',
+#                         alpha = alpha,
+#                         beta = beta,
+#                         recruitment = 'BH_R',
+#                         recruitment.type = 'AR',
+#                         rhoR = .75, # Determines the amount of autocorrelation
+#                         negg = codest$parameters[['alpha.lin']],
+#                         eggbeta = codest$parameters[['beta.lin']],
+#                         lambda = 0.3,
+#                         lambda.slope = 0.6,
+#                         F0 = 0.5,
+#                         R0 = 1000) # Specify parameters
+# 
+# tmp <- run.agebased.true.catch(df)
+# 
+# 
+# 
 Linf <- 150
 maxage <- 12
 K <- 0.4
