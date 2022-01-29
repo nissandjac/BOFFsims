@@ -51,15 +51,15 @@ seeds <- round(runif(n = nruns, min = 1,  max = 1e6))
 
 
 # Punch in life history parameters (these are standard in run scenario)
-tau <- 5
-Linf <- 150
-maxage <- 10
-K <- 0.6
+tau <- 2
+Linf <- 30
+maxage <- 5
+K <- 0.8
 t0 <- 0
-SDR <- 0.5
+SDR <- 1
 F0 <- 0.2
 R0 <- 1000
-M <- 0.4
+M <- 0.8
 recruitment <- 'BH_R'
 lambda.slope <- .7
 
@@ -82,6 +82,36 @@ df <- load_data_seasons(nseason = 1,
                         R0 = R0) # Specify parameters
 
 
+## Calculate Fmsy ###
+
+Fmsy <- seq(.01, 3, length.out = 50)
+Catch <- NA
+
+for(i in 1:length(Fmsy)){
+  
+  df <- load_data_seasons(nseason = 1,
+                          nyear = 100,# Set up parameters 
+                          Linf = Linf, 
+                          maxage = maxage,
+                          tau = tau,
+                          K = K, 
+                          t0 = t0, 
+                          M= M,
+                          SDR = 0, # Recruitment deviations - set to zero to calculate lambda
+                          fishing.type = 'constant',
+                          mortality = 'constant',
+                          recruitment = recruitment,
+                          negg = codest$parameters[['alpha.lin']]/1e4,
+                          eggbeta = codest$parameters[['beta.lin']],
+                          F0 = Fmsy[i], # Set to zero to calc lambda
+                          R0 = R0) # Specify parameters
+  
+  
+ xx <- run.agebased.true.catch(df) 
+ Catch[i] <- xx$Catch[df$tEnd]  
+}
+
+plot(Fmsy,Catch, type ='l')
 
 
 Fin <- seq(0,1, length.out = 15)
@@ -153,83 +183,77 @@ df.Nsum <- df.N %>%
   summarise(N = sum(N),
             Catch = sum(Catch),
             SSB=  sum(SSB),
-            Rdev = mean(Rdev)) # The Rdev mean is not a mean (it's the same for all ) 
+            Rdev = mean(Rdev)) %>% arrange(run, old,model) # The Rdev mean is not a mean (it's the same for all ) 
 
 # Get median weight weighted by numbers
 
 df.wSum <- df.N %>% 
-  group_by(years, F0, model, run) %>%
+  group_by(years, F0, model ,run) %>%
   summarise(mWeight = weighted.mean(weight, N),
-            mAge = weighted.mean(age, N))
-  
+            mAge = weighted.mean(age, N)) %>% arrange(run, model)
 
 
 
-df.propOld <- data.frame(propOld = df.Nsum$N[df.Nsum$old == 'young']/df.Nsum$N[df.Nsum$old == 'old'],
-                         SSBprop = df.Nsum$SSB[df.Nsum$old == 'young']/df.Nsum$SSB[df.Nsum$old == 'old'],
+# Rearrange ls.plot[22]
+
+R.df <- ls.plot[[2]] %>% arrange(run, years,model)
+
+
+df.propOld <- data.frame(propOld = df.Nsum$N[df.Nsum$old == 'old']/(df.Nsum$N[df.Nsum$old == 'young']+df.Nsum$N[df.Nsum$old == 'old']),
+                         SSBprop = df.Nsum$SSB[df.Nsum$old == 'old']/(df.Nsum$SSB[df.Nsum$old == 'young']+df.Nsum$SSB[df.Nsum$old == 'old']),
                          years = df.Nsum$years[df.Nsum$old == 'old'],
                          model = df.Nsum$model[df.Nsum$old == 'old'],
                          run = df.Nsum$run[df.Nsum$old == 'old'],
-                         meanWeight = df.wSum$mWeight,
-                         meanAge = df.wSum$mAge,
-                         R = ls.plot[[2]]$R,
-                         RR0 = ls.plot[[2]]$R/exp(df$parms$logRinit),
-                         Rtot = ls.plot[[2]]$Rtot
-                         )
+                         Rdev = df.Nsum$Rdev[df.Nsum$old == 'old'],
+                         mweight = df.wSum$mWeight,
+                         mage = df.wSum$mAge,
+                         rec = R.df$R,
+                         M = R.df$M,
+                         F0 = R.df$F0,
+                         recR0 = R.df$R/exp(df$parms$logRinit),
+                         rtot = R.df$Rtot
+)
+
+print(median(df.propOld$SSBprop))
+
+# df.propSum <- df.propOld %>% 
+#   group_by( years, model) %>% 
+#  summarise(propN = median(propOld),
+#            propSSB = median(SSBprop),
+#            mWeight = median(meanWeight),
+#            mAge = median(meanAge)) %>% 
+#   pivot_longer(cols = 3:6)
 
 
 
-median(df.propOld$propOld)
-median(df.propOld$SSBprop) # approx 50% with age 6
-
-# Summarise the data 
-
-
-df.propSum <- df.propOld %>% 
-  group_by( years, model) %>% 
- summarise(propN = median(propOld),
-           propSSB = median(SSBprop),
-           mWeight = median(meanWeight),
-           mAge = median(meanAge)) %>% 
-  pivot_longer(cols = 3:6)
-
-
-
-ggplot(df.propSum[df.propSum$years > 50,], aes(x = years, y= value, color = model))+geom_line()+facet_wrap(~name, scales = 'free_y')
+# ggplot(df.propSum[df.propSum$years > 50,], aes(x = years, y= value, color = model))+geom_line()+facet_wrap(~name, scales = 'free_y')
 
 # Try the correlation coefficients 
 
-
-propplot <- df.propOld %>% group_by(model, run) %>% summarise(SSBcor  = cor(SSBprop, RR0),
-                                                              weightcor  = cor(meanWeight, RR0),
-                                                              agecor  = cor(meanAge, RR0)) %>% pivot_longer(3:5)
-
-
-p1 <- ggplot(propplot, aes(x = model, y = value, group = model, fill = model))+geom_violin()+facet_wrap(~name)+theme_bw()+geom_hline(aes(yintercept = 0))+
-  geom_boxplot(width = 0.2)+theme(legend.position = 'top',
-                                  axis.text.x=element_blank())+scale_x_discrete('')+
-  scale_y_continuous('correlation coefficient (SSB ~ R/R0)')
-
-
-
-propplot <- df.propOld %>% group_by(model, run) %>% summarise(SSBcor  = cor(SSBprop, Rtot),
-                                                         weightcor  = cor(meanWeight, Rtot),
-                                                         agecor  = cor(meanAge, Rtot)) %>% pivot_longer(3:5)
-
-p2 <- ggplot(propplot, aes(x = model, y = value, group = model, fill = model))+
-  geom_violin()+
-  facet_wrap(~name)+
-  theme_bw()+
-  geom_hline(aes(yintercept = 0))+
-  geom_boxplot(width = 0.2)+
-  theme(legend.position = 'none',axis.text.x = element_text(angle = 50, vjust = .5))+
-  scale_x_discrete('')+
-  scale_y_continuous('correlation coefficient (SSB ~ #eggs)')
+prop.plot <- df.propOld %>% group_by(model, run) %>% summarise(SSBcorRR0  = cor(SSBprop, recR0),
+                                                               weightcorRR0  = cor(mweight, recR0),
+                                                               agecorRR0  = cor(mage, recR0),
+                                                               SSBcorRtot  = cor(SSBprop, rtot),
+                                                               weightcorRtot  = cor(mweight, rtot),
+                                                               agecorRtot  = cor(mage, rtot),
+                                                               SSBcorRdev  = cor(SSBprop, Rdev),
+                                                               weightcorRdev  = cor(mweight, Rdev),
+                                                               agecorRdev  = cor(mage, Rdev)) %>%
+  pivot_longer(3:11)
 
 
+lims <- max(abs(prop.plot$value))
 
-p1/p2
 
+p1 <-   ggplot(prop.plot, aes(x = model, y = value, fill = model))+geom_violin()+geom_boxplot(width = 0.1)+
+    facet_wrap(~name)+scale_x_discrete()+scale_y_continuous('correlation coefficient')+
+    theme_bw()+theme(axis.text.x = element_blank())+coord_cartesian(ylim = c(-lims,lims))+geom_hline(aes(yintercept = 0), linetype = 2)
+
+p1# 
+
+png('figures/codlikeviolin.png', width = 16, height = 16, res = 400, units = 'cm')
+p1
+dev.off()
 
 
 

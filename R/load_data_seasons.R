@@ -393,7 +393,7 @@ load_data_seasons <- function(nseason = 1,
     stop('wrong size')
   }
   
-  egg.size <- (negg*wage_ssb[1,]^eggbeta)/1e6 # Scale to get easier numbers to work iwth
+  egg.size <- (negg*wage_ssb[1,]^eggbeta) # Scale to get easier numbers to work iwth
   
 
   df <-list(      #### Parameters #####

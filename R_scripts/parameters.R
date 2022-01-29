@@ -1,0 +1,15 @@
+tau = 5
+Linf = 150
+maxage = 10
+K = 0.6
+t0 = 0
+SDR = 0.5
+F0 = 0.2
+M = 0.4
+R0 = 1000
+recruitment = 'BH_R'
+lambda.slope = .7
+mortality = 'constant'
+fishing.type = 'constant'
+recruitment = 'AR'
+egg.scale <- egg.scale[3]

@@ -7,6 +7,7 @@ runScenarios <- function(models = c('linear','hyper'),
                          egg.df,
                          lambda.slope = 0.3,
                          Linf = 150,
+                         t0 = 0,
                          maxage = 10,
                          tau = 5,
                          K = 0.4,
@@ -16,6 +17,8 @@ runScenarios <- function(models = c('linear','hyper'),
                          R0 = 1000,
                          h = 0.4,
                          rho = 0.001,
+                         egg.scale = 1, 
+                         tau_sel= 2,
                          recruitment = 'BH_R',
                          recruitment.type = 'AR',
                          fishing.type = 'constant',
@@ -33,14 +36,15 @@ runScenarios <- function(models = c('linear','hyper'),
                             Linf = Linf, 
                             maxage = maxage,
                             tau = tau,
+                            tau_sel = tau_sel,
                             K = K, 
                             t0 = t0, 
                             M= M,
                             SDR = 0, # Recruitment deviations - set to zero to calculate lambda
-                            fishing.type = 'constant',
-                            mortality = 'constant',
+                            fishing.type = fishing.type,
+                            mortality = mortality,
                             recruitment = recruitment,
-                            negg = codest$parameters[['alpha.lin']],
+                            negg = codest$parameters[['alpha.lin']]/egg.scale,
                             eggbeta = codest$parameters[['beta.lin']],
                             F0 = 0, # Set to zero to calc lambda
                             R0 = R0) # Specify parameters
@@ -75,6 +79,7 @@ runScenarios <- function(models = c('linear','hyper'),
                             R = NA,
                             Rtot = NA,
                             Catch = NA, 
+                            M = NA,
                             run = rep(1:nruns, each = years),
                             model = paste(models[k],recLambda[j], sep = '-'))
       
@@ -101,13 +106,13 @@ runScenarios <- function(models = c('linear','hyper'),
         
         if(models[k] == 'linear'){
           
-          negg = egg.df$parameters[['alpha.lin']]
+          negg = egg.df$parameters[['alpha.lin']]/egg.scale
           eggbeta = egg.df$parameters[['beta.lin']]
         }
         
         if(models[k] == 'hyper'){
           
-          negg = egg.df$parameters[['alpha.hyper']]
+          negg = egg.df$parameters[['alpha.hyper']]/egg.scale
           eggbeta = egg.df$parameters[['beta.hyper']]
         }
         
@@ -119,6 +124,7 @@ runScenarios <- function(models = c('linear','hyper'),
           lambda = lambda.in
         }
         
+        
         df <- load_data_seasons(nseason = 1,
                                 nyear = years,# Set up parameters 
                                 Linf = Linf, 
@@ -126,6 +132,8 @@ runScenarios <- function(models = c('linear','hyper'),
                                 K = K, 
                                 t0 = t0, 
                                 M = M,
+                                tau_sel = tau_sel,
+                                tau = tau,
                                 SDR = SDR, # Recruitment deviations 
                                 fishing.type = fishing.type,
                                 mortality = mortality,
@@ -151,6 +159,7 @@ runScenarios <- function(models = c('linear','hyper'),
         df.save[df.save$run == i,]$Rtot <- tmprun$Rtot.save
         df.save[df.save$run == i,]$Catch <- tmprun$Catch
         df.save[df.save$run == i,]$F0 <- F0[p]
+        df.save[df.save$run == i,]$M <- df$M0
         
         
         df.N[df.N$run == i,]$N <- as.numeric(tmprun$N.save.age[,1:years,,])

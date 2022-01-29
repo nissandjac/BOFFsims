@@ -8,29 +8,25 @@ fn_sims <- function(tau = 5,
                     F0 = 0.2,
                     M = 0.4,
                     R0 = 1000,
+                    rho = 0.001,
+                    egg.scale = 1,
+                    tau_sel = 2,
                     recruitment = 'BH_R',
                     lambda.slope = .7,
                     mortality = 'constant',
                     fishing.type = 'constant',
-                    recruitment = 'AR'
+                    recruitment.type = 'AR'
                     ){
 
-  require('tidyverse')
-  require('patchwork')
-  source('R/calcSSB0.R')
-  source('R/run_agebased_model_true_Catch.R')
-  source('R/load_data_seasons.R')
-  source('R/est_eggs.R')
-  source('R/plotRecruitment.R')
-  source('R/getEquilibrium.R')
-  source('R/runScenarios.R')
+  
 # Just use cod for fun
   eggs <- read.csv('data/fecundityEggSizeFemaleSize.csv')
   eggs$weight <- 0.01*(eggs$FemaleSize_mm/10)^3 # Fix this later
   # All eggs as a function of size 
   
-  eggs <- eggs %>% group_by(Species) %>% mutate(relweight = weight/max(weight),
-                                                releggs = Fecundity_nOfEggs_per_female/max(Fecundity_nOfEggs_per_female)
+  eggs <- eggs %>% group_by(Species) %>% 
+    mutate(relweight = weight/max(weight),                                     
+           releggs = Fecundity_nOfEggs_per_female/max(Fecundity_nOfEggs_per_female)
   )
   
   
@@ -51,39 +47,60 @@ fn_sims <- function(tau = 5,
   codest <- est_eggs(x = cod$weight,
                      y = cod$Fecundity_nOfEggs_per_female)
   
-  
-  
-  # This df is just used for later calcs 
-  df <- load_data_seasons(nseason = 1,
-                          nyear = 100,# Set up parameters 
-                          Linf = Linf, 
-                          maxage = maxage,
-                          tau = tau,
-                          K = K, 
-                          t0 = t0, 
-                          M= M,
-                          SDR = 0, # Recruitment deviations - set to zero to calculate lambda
-                          fishing.type = 'constant',
-                          mortality = 'constant',
-                          recruitment = recruitment,
-                          negg = codest$parameters[['alpha.lin']],
-                          eggbeta = codest$parameters[['beta.lin']],
-                          F0 = 0, # Set to zero to calc lambda
-                          R0 = R0) # Specify parameters
-  
-  
-  
+  ### Calculate Fmsy 
+  # 
+  # Fmsy <- seq(0, 3, length.out = 20)
+  # 
+  # 
+  # 
+  # for(i in 1:length(Fmsy)){
+  # # This df is just used for later calcs 
+  # df <- load_data_seasons(nseason = 1,
+  #                         nyear = 100,# Set up parameters 
+  #                         Linf = Linf, 
+  #                         maxage = maxage,
+  #                         tau = tau,
+  #                         K = K, 
+  #                         t0 = t0, 
+  #                         M= M,
+  #                         tau_sel = tau_sel,
+  #                         SDR = 0, # Recruitment deviations - set to zero to calculate lambda
+  #                         fishing.type = 'constant',
+  #                         mortality = 'constant',
+  #                         recruitment = recruitment,
+  #                         negg = codest$parameters[['alpha.lin']]/egg.scale,
+  #                         eggbeta = codest$parameters[['beta.lin']],
+  #                         F0 = Fmsy[i], # Set to zero to calc lambda
+  #                         R0 = R0) # Specify parameters
+  # 
+  # 
+  # xx <- run.agebased.true.catch(df)
+  # 
+  # }
+  # 
   
   Fin <- F0
   
   ls.plot <- runScenarios(models = c('linear','hyper'),
                           recLambda = c('noBOFF','BOFF'),
+                          nruns = 50, 
                           runLambda = FALSE,
                           lambda.in = .4,
+                          rho = rho,
                           egg.df = codest, 
+                          egg.scale = egg.scale,
                           lambda.slope = lambda.slope,
                           SDR = SDR,
-                          F0 = Fin)
+                          F0 = Fin,
+                          maxage = maxage,
+                          K = K, 
+                          Linf = Linf,
+                          t0 = t0,
+                          tau = tau,
+                          tau_sel = tau_sel,
+                          M = M,
+                          mortality = mortality,
+                          recruitment.type = recruitment.type)
   
   # Run all the models 
   
@@ -99,37 +116,39 @@ fn_sims <- function(tau = 5,
   
   ## Summarise the data frame to  plot it 
   df.N$old <- NA
-  pold <- tau
+  pold <- tau+2
   
   df.N$old[df.N$age < pold] <- 'young'
   df.N$old[df.N$age >= pold] <- 'old'
   
+  # Remove the zero age from the calculations 
   
   
-  df.Nsum <- df.N %>% 
+  df.Nsum <- df.N[df.N$age > 0,] %>% 
     group_by(years, F0, model, old, run) %>% 
     summarise(N = sum(N),
               Catch = sum(Catch),
               SSB=  sum(SSB),
-              Rdev = mean(Rdev)) %>% arrange(run, old) # The Rdev mean is not a mean (it's the same for all ) 
+              Rdev = mean(Rdev)) %>% arrange(run, old,model) # The Rdev mean is not a mean (it's the same for all ) 
   
   # Get median weight weighted by numbers
   
   df.wSum <- df.N %>% 
     group_by(years, F0, model ,run) %>%
     summarise(mWeight = weighted.mean(weight, N),
-              mAge = weighted.mean(age, N)) %>% arrange(run)
+              mAge = weighted.mean(age, N)) %>% arrange(run, model)
   
   
   
   # Rearrange ls.plot[22]
   
-  R.df <- ls.plot[[2]] %>% arrange(run, years)
+  R.df <- ls.plot[[2]] %>% arrange(run, years,model)
   
   
   
-  df.propOld <- data.frame(propOld = df.Nsum$N[df.Nsum$old == 'young']/df.Nsum$N[df.Nsum$old == 'old'],
-                           SSBprop = df.Nsum$SSB[df.Nsum$old == 'young']/df.Nsum$SSB[df.Nsum$old == 'old'],
+  
+  df.propOld <- data.frame(propOld = df.Nsum$N[df.Nsum$old == 'old']/(df.Nsum$N[df.Nsum$old == 'young']+df.Nsum$N[df.Nsum$old == 'old']),
+                           SSBprop = df.Nsum$SSB[df.Nsum$old == 'old']/(df.Nsum$SSB[df.Nsum$old == 'young']+df.Nsum$SSB[df.Nsum$old == 'old']),
                            years = df.Nsum$years[df.Nsum$old == 'old'],
                            model = df.Nsum$model[df.Nsum$old == 'old'],
                            run = df.Nsum$run[df.Nsum$old == 'old'],
@@ -137,11 +156,17 @@ fn_sims <- function(tau = 5,
                            mweight = df.wSum$mWeight,
                            mage = df.wSum$mAge,
                            rec = R.df$R,
+                           M = R.df$M,
+                           F0 = R.df$F0,
                            recR0 = R.df$R/exp(df$parms$logRinit),
                            rtot = R.df$Rtot
   )
   
+  print(median(df.propOld$SSBprop))
   
+  
+  sum(df.N[df.N$years == 26 & df.N$model == 'hyper-BOFF' & df.N$run == 1 & df.N$F0 == 0.275,]$SSB[5:6])/
+    sum(df.N[df.N$years == 26 & df.N$model == 'hyper-BOFF' & df.N$run == 1 & df.N$F0 == 0.275,]$SSB[1:6])  
   # 
   # 
   # df.propSum <- df.propOld %>% 
@@ -170,10 +195,17 @@ fn_sims <- function(tau = 5,
     pivot_longer(3:11)
   
   
+  lims <- max(abs(prop.plot$value))
  
   
-  print(ggplot(prop.plot, aes(x = model, y = value, fill = model))+geom_violin()+facet_wrap(~name, scales = 'free_y')+scale_x_discrete()+theme(axis.text.x = element_blank())
+  print(
+    ggplot(prop.plot, aes(x = model, y = value, fill = model))+geom_violin()+geom_boxplot(width = 0.1)+
+          facet_wrap(~name)+scale_x_discrete()+theme(axis.text.x = element_blank())+
+      theme_bw()+coord_cartesian(ylim = c(-lims,lims))+geom_hline(aes(yintercept = 0), linetype = 2)
+                                                                        )
   # Create a data frame to save 
+  
+  df.propOld <- df.propOld %>% mutate(Linf = Linf, SDR = SDR, K = K, tau = tau)
   
   df.export <- df.propOld
   
