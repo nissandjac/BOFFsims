@@ -1,5 +1,5 @@
 ### Run bulk sims ###
-
+require('scam')
 require('tidyverse')
 require('patchwork')
 source('R/fn_sims.R')
@@ -54,7 +54,7 @@ R0 = 1000
 recruitment = 'BH_R'
 
 nspecies <- 3 
-F0 <- seq(0.1,.8, length.out = 5)
+F0 <- seq(0.1,.3, length.out = 5)
 
 
 # Calculate Fmsy as a function of LH parameters 
@@ -144,18 +144,18 @@ df.plot <- df.out[df.out$rec>1,]
 
 
 
-ggplot(df.plot[df.plot$years > 50 ,], aes(x = mweight, y = SSBprop, color = model))+geom_point()+
+p1 <- ggplot(df.plot[df.plot$years > 50 ,], aes(x = mweight, y = SSBprop, color = model))+geom_point()+
   facet_wrap(~Linf, scales = 'free')+theme_bw()
 
 
-ggplot(df.plot[df.plot$years > 50 ,], aes(x = SSBprop, y = Rdev, color = model))+geom_point()+
+p2 <- ggplot(df.plot[df.plot$years > 50 ,], aes(x = SSBprop, y = Rdev, color = model))+geom_point()+
   facet_wrap(~Linf, scales = 'free')+theme_bw()+geom_smooth(method = 'lm')
 
 
-ggplot(df.plot[df.plot$years > 50 ,], aes(x = SSBprop, y = recR0, color = model))+geom_point()+
+p3 <- ggplot(df.plot[df.plot$years > 50 ,], aes(x = SSBprop, y = recR0, color = model))+geom_point()+
   facet_wrap(~Linf, scales = 'free')+theme_bw()+geom_smooth(method = 'lm')
 
-
+p1/p2/p3
 
 prop.plot <- df.plot %>% group_by(model, run, Linf, SDR, K, tau) %>% summarise(SSBcorRR0  = cor(SSBprop, recR0),
                                                                weightcorRR0  = cor(mweight, recR0),
@@ -163,9 +163,9 @@ prop.plot <- df.plot %>% group_by(model, run, Linf, SDR, K, tau) %>% summarise(S
                                                                SSBcorRtot  = cor(SSBprop, rtot),
                                                                weightcorRtot  = cor(mweight, rtot),
                                                                agecorRtot  = cor(mage, rtot),
-                                                               SSBcorRdev  = cor(SSBprop, Rdev),
-                                                               weightcorRdev  = cor(mweight, Rdev),
-                                                               agecorRdev  = cor(mage, Rdev)) %>% 
+                                                               SSBcorRdev  = cor(SSBprop, Rresid),
+                                                               weightcorRdev  = cor(mweight, Rresid),
+                                                               agecorRdev  = cor(mage, Rresid)) %>% 
   pivot_longer(7:15)
 
 

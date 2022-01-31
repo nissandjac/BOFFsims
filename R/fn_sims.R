@@ -110,6 +110,7 @@ fn_sims <- function(tau = 5,
   # Make Mikaels figures # 
   
   df.N <- ls.plot[[3]]
+  df.N <- df.N[df.N$age > 0,]
   
   df.N$SSB <- df.N$N*df.N$weight*df.N$mat
   
@@ -140,11 +141,37 @@ fn_sims <- function(tau = 5,
   
   
   
+  
   # Rearrange ls.plot[22]
+
   
-  R.df <- ls.plot[[2]] %>% arrange(run, years,model)
+  R.df <- ls.plot[[2]] %>% arrange(run, model,years) 
   
+  ### DO it the old slow way, but change later 
+  models <- unique(R.df$model)
+  nruns <- max(R.df$run)
+  R.df$residuals <- NA
   
+  for(i in 1:nruns){
+    for(j in 1:length(models)){
+      
+      
+     dftmp <- R.df[R.df$run == i & R.df$model == models[j],]  
+     Ftmp <- scam(log(R+.001) ~ s(SSB, k = 20, bs = 'mpd', m = 2) +  
+                                      offset(log(SSB+.001)), family=gaussian(link="identity"), data = dftmp,optimizer="nlm",sp=0.01)
+     
+      
+     # Calculate the residuals (anomalies) 
+     dftmp$Rpred <- exp(predict(Ftmp, newdata = data.frame(SSB = dftmp$SSB)))
+     dftmp$residuals <- log(dftmp$R)-log(dftmp$Rpred)
+    
+     
+     # Add the residuals to the R.df data frame 
+     R.df[R.df$run == i & R.df$model == models[j],]$residuals <- dftmp$residuals
+     
+     
+     }
+  }
   
   
   df.propOld <- data.frame(propOld = df.Nsum$N[df.Nsum$old == 'old']/(df.Nsum$N[df.Nsum$old == 'young']+df.Nsum$N[df.Nsum$old == 'old']),
@@ -153,6 +180,7 @@ fn_sims <- function(tau = 5,
                            model = df.Nsum$model[df.Nsum$old == 'old'],
                            run = df.Nsum$run[df.Nsum$old == 'old'],
                            Rdev = df.Nsum$Rdev[df.Nsum$old == 'old'],
+                           Rresid = R.df$residuals,
                            mweight = df.wSum$mWeight,
                            mage = df.wSum$mAge,
                            rec = R.df$R,
@@ -163,10 +191,8 @@ fn_sims <- function(tau = 5,
   )
   
   print(median(df.propOld$SSBprop))
+  ggplot(df.propOld, aes(x = Rresid, y = Rdev))+geom_point()+geom_smooth(method = 'lm')
   
-  
-  sum(df.N[df.N$years == 26 & df.N$model == 'hyper-BOFF' & df.N$run == 1 & df.N$F0 == 0.275,]$SSB[5:6])/
-    sum(df.N[df.N$years == 26 & df.N$model == 'hyper-BOFF' & df.N$run == 1 & df.N$F0 == 0.275,]$SSB[1:6])  
   # 
   # 
   # df.propSum <- df.propOld %>% 
@@ -189,9 +215,9 @@ fn_sims <- function(tau = 5,
                                                                 SSBcorRtot  = cor(SSBprop, rtot),
                                                                 weightcorRtot  = cor(mweight, rtot),
                                                                 agecorRtot  = cor(mage, rtot),
-                                                                SSBcorRdev  = cor(SSBprop, Rdev),
-                                                                weightcorRdev  = cor(mweight, Rdev),
-                                                                agecorRdev  = cor(mage, Rdev)) %>%
+                                                                SSBcorRdev  = cor(SSBprop, Rresid),
+                                                                weightcorRdev  = cor(mweight, Rresid),
+                                                                agecorRdev  = cor(mage, Rresid)) %>%
     pivot_longer(3:11)
   
   
