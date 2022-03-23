@@ -72,7 +72,7 @@ df <- load_data_seasons(nseason = 1,
                         h = 0.4,
                         K = .6, 
                         t0 = 0, 
-                        SDR = .0, # Recruitment deviations 
+                        SDR = 1, # Recruitment deviations 
                         fishing.type = 'constant',
                         mortality = 'constant',
                         alpha = alpha,
@@ -82,10 +82,12 @@ df <- load_data_seasons(nseason = 1,
                         rhoR = .75, # Determines the amount of autocorrelation
                         negg = codest$parameters[['alpha.lin']],
                         eggbeta = codest$parameters[['beta.lin']],
-                        F0 = 0.5,
+                        F0 = 0.1,
                         R0 = 1000) # Specify parameters
 
 tmp <- run.agebased.true.catch(df)
+
+plot(tmp$SSB)
 
 
 
