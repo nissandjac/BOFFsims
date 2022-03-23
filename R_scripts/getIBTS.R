@@ -4,7 +4,7 @@ library(DATRAS)
 library(surveyIndex)
 #source('addSpatialData.R')
 
-X <- readExchangeDir('IBTS/')
+X <- readExchangeDir('data/IBTS/')
 addSpatialData(X, "spatial data/ICES_areas.shp")
 addSpectrum(X)
 df <- read.csv('TEST.csv')
