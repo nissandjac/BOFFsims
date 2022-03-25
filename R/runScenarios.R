@@ -23,7 +23,7 @@ runScenarios <- function(models = c('linear','hyper'),
                          recruitment.type = 'AR',
                          fishing.type = 'constant',
                          mortality = 'constant',
-                         seeds = round(runif(years, min = 1, max = 1e6))){
+                         seeds = round(runif(nruns, min = 1, max = 1e6))){
   
   
   

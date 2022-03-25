@@ -43,8 +43,8 @@ codest <- est_eggs(x = cod$weight,
 
 Linf <- 50
 K <-  0.4
-SDR <- 0.5
-rho <- c(.01, .5, .99) # Try three different auto correlation coefficients 
+SDR <- 0.2
+rho <- c(.01,.1, .5, .7, .99) # Try five different auto correlation coefficients 
 maxage <- 10
 tau <- 3
 M0 <- .4
@@ -100,39 +100,43 @@ for(i in 1:nspecies){
 
 
 ggplot(Catch, aes(x = F0, y = Catch, color = as.factor(species)))+geom_line()+theme_classic()+
-  facet_wrap(~species, scales = 'free_y')
+  facet_wrap(~species, scales = 'free_y')+theme(legend.position = 'none')
 
 
+F0 <- 0.2
 
 
-
-for(i in 1:nspecies){
+for(i in 1:length(rho)){
   
   
-  df.in <- fn_sims(tau = tau[i],
-                   Linf = Linf[i],
-                   maxage = maxage[i],
-                   K = K[i],
+  df.in <- fn_sims(tau = tau,
+                   Linf = Linf,
+                   maxage = maxage,
+                   K = K,
                    t0 = 0,
-                   SDR = SDR[i],
+                   SDR = SDR,
                    F0 = F0,
-                   M = M0[i],
-                   tau_sel = tau_sel[i],
-                   egg.scale = egg.scale[i],
-                   R0 = 1000,
+                   M = M0,
+                   tau_sel = tau_sel,
+                   egg.scale = egg.scale,
+                   R0 = R0,
                    rho = rho[i],
                    recruitment = 'BH_R',
                    lambda.slope = .7,
                    mortality = 'constant',
-                   fishing.type = 'constant',
+                   fishing.type = 'AR',
                    recruitment.type = 'AR'
                    
   )
   
   if(i == 1){
-    df.out <- df.in
+    df.out <- df.in[[1]]
+    df.N <- df.in[[3]]
+    df.save <- df.in[[2]]
   }else{
-    df.out <- rbind(df.out, df.in)
+    df.out <- rbind(df.out, df.in[[1]])
+    df.N <- rbind(df.N, df.in[[3]])
+    df.save <- rbind(df.save, df.in[[2]])
   }
   
   
@@ -145,19 +149,19 @@ df.plot <- df.out[df.out$rec>1,]
 
 
 p1 <- ggplot(df.plot[df.plot$years > 50 ,], aes(x = mweight, y = SSBprop, color = model))+geom_point()+
-  facet_wrap(~Linf, scales = 'free')+theme_bw()
+  facet_wrap(~rho, scales = 'free')+theme_bw()
 
 
 p2 <- ggplot(df.plot[df.plot$years > 50 ,], aes(x = SSBprop, y = Rdev, color = model))+geom_point()+
-  facet_wrap(~Linf, scales = 'free')+theme_bw()+geom_smooth(method = 'lm')
+  facet_wrap(~rho, scales = 'free')+theme_bw()+geom_smooth(method = 'lm')
 
 
 p3 <- ggplot(df.plot[df.plot$years > 50 ,], aes(x = SSBprop, y = recR0, color = model))+geom_point()+
-  facet_wrap(~Linf, scales = 'free')+theme_bw()+geom_smooth(method = 'lm')
+  facet_wrap(~rho, scales = 'free')+theme_bw()+geom_smooth(method = 'lm')
 
 p1/p2/p3
 
-prop.plot <- df.plot %>% group_by(model, run, Linf, SDR, K, tau) %>% summarise(SSBcorRR0  = cor(SSBprop, recR0),
+prop.plot <- df.plot %>% group_by(model, run, Linf, SDR, K, tau, rho) %>% summarise(SSBcorRR0  = cor(SSBprop, recR0),
                                                                                weightcorRR0  = cor(mweight, recR0),
                                                                                agecorRR0  = cor(mage, recR0),
                                                                                SSBcorRtot  = cor(SSBprop, rtot),
@@ -166,15 +170,66 @@ prop.plot <- df.plot %>% group_by(model, run, Linf, SDR, K, tau) %>% summarise(S
                                                                                SSBcorRdev  = cor(SSBprop, Rresid),
                                                                                weightcorRdev  = cor(mweight, Rresid),
                                                                                agecorRdev  = cor(mage, Rresid)) %>% 
-  pivot_longer(7:15)
+  pivot_longer(8:16)
 
 
 lims <- max(abs(prop.plot$value))
 
 
 p1 <-  ggplot(prop.plot, aes(x = model, y = value, fill = model))+geom_violin()+geom_boxplot(width = 0.1)+
-  facet_grid(factor(Linf)~name)+scale_x_discrete()+
+  facet_grid(factor(rho)~name)+scale_x_discrete()+
   theme_bw()+theme(axis.text.x = element_blank())+coord_cartesian(ylim = c(-lims,lims))+geom_hline(aes(yintercept = 0), linetype = 2)
 
+p1
 
-ggsave('figures/all_species_violin.png', p1, width = 16, height = 16)
+ggsave('figures/rho_violin.png', p1, width = 16, height = 16)
+
+
+# Plot some stock recruitment 
+idx <- c(1, 15, 25, 30, 50)
+# Time series 
+
+p2 <- ggplot(df.save[df.save$run %in% idx,], aes(x = years, y = R, color = factor(run)))+
+  geom_line()+theme_classic()+facet_grid(rho~model)
+p2
+
+
+p3 <- ggplot(df.save[df.save$run %in% idx,], aes(x = years, y = SSB, color = factor(run)))+
+  geom_line()+theme_classic()+facet_grid(rho~model)
+p3
+
+
+p2 <- ggplot(df.save[df.save$run %in% idx,], aes(x = years, y = Rtot, color = factor(run)))+
+  geom_line()+theme_classic()+facet_grid(rho~model)
+p2
+
+p2 <- ggplot(df.save[df.save$run %in% idx,], aes(x = SSB, y = R, color = factor(run)))+
+  geom_point()+theme_classic()+facet_grid(rho~model)
+p2
+
+
+
+
+# Use the scam fit for a range of models # 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

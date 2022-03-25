@@ -84,6 +84,7 @@ fn_sims <- function(tau = 5,
   ls.plot <- runScenarios(models = c('linear','hyper'),
                           recLambda = c('noBOFF','BOFF'),
                           nruns = 50, 
+                          years = 50,
                           runLambda = FALSE,
                           lambda.in = .4,
                           rho = rho,
@@ -158,7 +159,8 @@ fn_sims <- function(tau = 5,
       
      dftmp <- R.df[R.df$run == i & R.df$model == models[j],]  
      Ftmp <- scam(log(R+.001) ~ s(SSB, k = 20, bs = 'mpd', m = 2) +  
-                                      offset(log(SSB+.001)), family=gaussian(link="identity"), data = dftmp,optimizer="nlm",sp=0.01)
+                                      offset(log(SSB+.001)), 
+                  family=gaussian(link="identity"), data = dftmp,optimizer="nlm",sp=0.01)
      
       
      # Calculate the residuals (anomalies) 
@@ -231,11 +233,13 @@ fn_sims <- function(tau = 5,
                                                                         )
   # Create a data frame to save 
   
-  df.propOld <- df.propOld %>% mutate(Linf = Linf, SDR = SDR, K = K, tau = tau)
+  df.propOld <- df.propOld %>% mutate(Linf = Linf, SDR = SDR, K = K, tau = tau, rho = rho)
   
   df.export <- df.propOld
   
-  
+  return(list(calcs = df.export,
+              df.save = ls.plot[[2]],
+              N = ls.plot[[3]]))
 }
 
 

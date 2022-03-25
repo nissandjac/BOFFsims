@@ -130,9 +130,11 @@ for(i in 1:nspecies){
   )
 
   if(i == 1){
-    df.out <- df.in
+    df.out <- df.in[[1]]
+    df.N <- df.in[[2]]
   }else{
-    df.out <- rbind(df.out, df.in)
+    df.out <- rbind(df.out, df.in[[1]])
+    df.N <- rbind(df.N, df.in[[2]])
   }
 
 
@@ -173,8 +175,27 @@ lims <- max(abs(prop.plot$value))
 
 
 p1 <-  ggplot(prop.plot, aes(x = model, y = value, fill = model))+geom_violin()+geom_boxplot(width = 0.1)+
-    facet_grid(factor(Linf)~name)+scale_x_discrete()+
+    facet_grid(factor(rho)~name)+scale_x_discrete()+
     theme_bw()+theme(axis.text.x = element_blank())+coord_cartesian(ylim = c(-lims,lims))+geom_hline(aes(yintercept = 0), linetype = 2)
-
+p1
 
 ggsave('figures/all_species_violin.png', p1, width = 16, height = 16)
+
+
+
+# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
