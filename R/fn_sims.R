@@ -153,6 +153,8 @@ fn_sims <- function(tau = 5,
   nruns <- max(R.df$run)
   R.df$residuals <- NA
   
+  scammodels <- list()
+  
   for(i in 1:nruns){
     for(j in 1:length(models)){
       

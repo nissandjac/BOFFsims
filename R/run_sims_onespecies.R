@@ -214,7 +214,27 @@ p2
 
 
 
-
+for(i in 1:nruns){
+  for(j in 1:length(models)){
+    
+    
+    dftmp <- R.df[R.df$run == i & R.df$model == models[j],]  
+    Ftmp <- scam(log(R+.001) ~ s(SSB, k = 20, bs = 'mpd', m = 2) +  
+                   offset(log(SSB+.001)), 
+                 family=gaussian(link="identity"), data = dftmp,optimizer="nlm",sp=0.01)
+    
+    
+    # Calculate the residuals (anomalies) 
+    dftmp$Rpred <- exp(predict(Ftmp, newdata = data.frame(SSB = dftmp$SSB)))
+    dftmp$residuals <- log(dftmp$R)-log(dftmp$Rpred)
+    
+    
+    # Add the residuals to the R.df data frame 
+    R.df[R.df$run == i & R.df$model == models[j],]$residuals <- dftmp$residuals
+    
+    
+  }
+}
 
 
 
