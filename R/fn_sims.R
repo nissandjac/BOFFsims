@@ -1,5 +1,8 @@
 # Run egg trial thingie # 
-fn_sims <- function(tau = 5,
+fn_sims <- function(
+                    years = 100,
+                    nruns = 100,
+                    tau = 5,
                     Linf = 150,
                     maxage = 10,
                     K = 0.6,
@@ -11,6 +14,7 @@ fn_sims <- function(tau = 5,
                     rho = 0.001,
                     egg.scale = 1,
                     tau_sel = 2,
+                    Fpast = 0,
                     recruitment = 'BH_R',
                     lambda.slope = .7,
                     mortality = 'constant',
@@ -81,10 +85,14 @@ fn_sims <- function(tau = 5,
   
   Fin <- F0
   
+  seeds <- nruns*length(rho)
+  
+  
   ls.plot <- runScenarios(models = c('linear','hyper'),
                           recLambda = c('noBOFF','BOFF'),
-                          nruns = 50, 
-                          years = 50,
+                          nruns = nruns, 
+                          years = years,
+                          Fpast = Fpast,
                           runLambda = FALSE,
                           lambda.in = .4,
                           rho = rho,
@@ -101,7 +109,8 @@ fn_sims <- function(tau = 5,
                           tau_sel = tau_sel,
                           M = M,
                           mortality = mortality,
-                          recruitment.type = recruitment.type)
+                          recruitment.type = recruitment.type,
+                          seeds =)
   
   # Run all the models 
   
@@ -126,18 +135,18 @@ fn_sims <- function(tau = 5,
   # Remove the zero age from the calculations 
   
   
-  df.Nsum <- df.N[df.N$age > 0,] %>% 
+  df.Nsum <- df.N[df.N$age > 1,] %>% 
     group_by(years, F0, model, old, run) %>% 
-    summarise(N = sum(N),
+    dplyr::summarise(N = sum(N),
               Catch = sum(Catch),
               SSB=  sum(SSB),
-              Rdev = mean(Rdev)) %>% arrange(run, old,model) # The Rdev mean is not a mean (it's the same for all ) 
+              Rdev = mean(Rdev)) %>% dplyr::arrange(run, old,model) # The Rdev mean is not a mean (it's the same for all ) 
   
   # Get median weight weighted by numbers
   
-  df.wSum <- df.N %>% 
+  df.wSum <- df.N[df.N$age > 1,] %>% 
     group_by(years, F0, model ,run) %>%
-    summarise(mWeight = weighted.mean(weight, N),
+    dplyr::summarise(mWeight = weighted.mean(weight, N),
               mAge = weighted.mean(age, N)) %>% arrange(run, model)
   
   
@@ -188,6 +197,7 @@ fn_sims <- function(tau = 5,
                            mweight = df.wSum$mWeight,
                            mage = df.wSum$mAge,
                            rec = R.df$R,
+                           rho = R.df$rho,
                            M = R.df$M,
                            F0 = R.df$F0,
                            recR0 = R.df$R/exp(df$parms$logRinit),
@@ -195,7 +205,7 @@ fn_sims <- function(tau = 5,
   )
   
   print(median(df.propOld$SSBprop))
-  ggplot(df.propOld, aes(x = Rresid, y = Rdev))+geom_point()+geom_smooth(method = 'lm')
+  #ggplot(df.propOld, aes(x = Rresid, y = Rdev))+geom_point()+geom_smooth(method = 'lm')
   
   # 
   # 
@@ -213,7 +223,7 @@ fn_sims <- function(tau = 5,
   
   # Try the correlation coefficients 
   
-  prop.plot <- df.propOld %>% group_by(model, run) %>% summarise(SSBcorRR0  = cor(SSBprop, recR0),
+  prop.plot <- df.propOld %>% group_by(model, run, rho) %>% dplyr::summarise(SSBcorRR0  = cor(SSBprop, recR0),
                                                                 weightcorRR0  = cor(mweight, recR0),
                                                                 agecorRR0  = cor(mage, recR0),
                                                                 SSBcorRtot  = cor(SSBprop, rtot),
@@ -222,7 +232,7 @@ fn_sims <- function(tau = 5,
                                                                 SSBcorRdev  = cor(SSBprop, Rresid),
                                                                 weightcorRdev  = cor(mweight, Rresid),
                                                                 agecorRdev  = cor(mage, Rresid)) %>%
-    pivot_longer(3:11)
+    pivot_longer(4:12)
   
   
   lims <- max(abs(prop.plot$value))
@@ -235,7 +245,7 @@ fn_sims <- function(tau = 5,
                                                                         )
   # Create a data frame to save 
   
-  df.propOld <- df.propOld %>% mutate(Linf = Linf, SDR = SDR, K = K, tau = tau, rho = rho)
+  df.propOld <- df.propOld %>% mutate(Linf = Linf, SDR = SDR, K = K, tau = tau)
   
   df.export <- df.propOld
   

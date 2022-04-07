@@ -161,6 +161,9 @@ run.agebased.true.catch <- function(df, seed = 123){
   N.save.age.mid <- array(NA,dim = c(nage,nyear+1, nspace, nseason), 
                           dimnames = list(age = age, year = year_1, space = 1:nspace, season = 1:nseason))
   R.save <- matrix(NA, nyear, nspace)
+  SR <- matrix(NA, nyear)
+  R0.boff <- matrix(NA, nyear, nspace)
+  
   V.save <- array(NA,dim = c(nyear, nspace, nseason), dimnames = list(
     year = year, space = 1:nspace, season = 1:nseason))
 
@@ -395,15 +398,15 @@ run.agebased.true.catch <- function(df, seed = 123){
         }
         
         
-        
+        R0.boff[yr,nspace] <- R0_boff
         
         # if(yr == 1){
         #   print(df$lambda.slope)
         # }
         
         # print(round(R0_boff/R0, 3))
-
-        R <- R0_boff*Rtot/(Rtot+R0_boff)*exp(-0.5*df$b[yr]*SDR^2+Ry)#
+        SR[yr] <- R0_boff*Rtot/(Rtot+R0_boff)
+        R <- SR[yr]*exp(-0.5*df$b[yr]*SDR^2+Ry)#
         
         
       }
@@ -701,7 +704,9 @@ run.agebased.true.catch <- function(df, seed = 123){
                      SSB = SSB, 
                      N.save.age = N.save.age,
                      R.save = R.save,
+                     R0.boff = R0.boff,
                      Rtot.save = Rtot.save,
+                     SR = SR,
                      V.save = V.save,
                      Biomass = Biomass.save,
                      SSB.all = SSB.all,

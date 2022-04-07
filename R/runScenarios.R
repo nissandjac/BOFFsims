@@ -12,6 +12,7 @@ runScenarios <- function(models = c('linear','hyper'),
                          tau = 5,
                          K = 0.4,
                          M = 0.4,
+                         Fpast = 0,
                          SDR = .5,
                          F0 = 0,
                          R0 = 1000,
@@ -40,10 +41,12 @@ runScenarios <- function(models = c('linear','hyper'),
                             K = K, 
                             t0 = t0, 
                             M= M,
+                            Fpast = Fpast,
                             SDR = 0, # Recruitment deviations - set to zero to calculate lambda
                             fishing.type = fishing.type,
                             mortality = mortality,
                             recruitment = recruitment,
+                            recruitment.type = recruitment.type,
                             negg = codest$parameters[['alpha.lin']]/egg.scale,
                             eggbeta = codest$parameters[['beta.lin']],
                             F0 = 0, # Set to zero to calc lambda
@@ -60,7 +63,7 @@ runScenarios <- function(models = c('linear','hyper'),
     
   }
   
-  
+  set.seed(123)
   
   
   for(s in 1:length(rho)){
@@ -77,6 +80,8 @@ runScenarios <- function(models = c('linear','hyper'),
                             rho = rho[s],
                             SSB = NA,
                             R = NA,
+                            R0_boff = NA,
+                            SR = NA,
                             Rtot = NA,
                             Catch = NA, 
                             M = NA,
@@ -144,7 +149,7 @@ runScenarios <- function(models = c('linear','hyper'),
                                 negg = negg,
                                 eggbeta = eggbeta,
                                 F0 = F0[p],
-                                rho = rho[s],
+                                rhoR = rho[s],
                                 R0 = R0,
                                 lambda = lambda,
                                 lambda.slope = lambda.slope) # Specify parameters
@@ -156,10 +161,12 @@ runScenarios <- function(models = c('linear','hyper'),
         
         df.save[df.save$run == i,]$SSB <- tmprun$SSB
         df.save[df.save$run == i,]$R <- tmprun$R.save
+        df.save[df.save$run == i,]$R0_boff <- tmprun$R0.boff
         df.save[df.save$run == i,]$Rtot <- tmprun$Rtot.save
         df.save[df.save$run == i,]$Catch <- tmprun$Catch
         df.save[df.save$run == i,]$F0 <- F0[p]
         df.save[df.save$run == i,]$M <- df$M0
+        df.save[df.save$run == i,]$SR <- tmprun$SR
         
         
         df.N[df.N$run == i,]$N <- as.numeric(tmprun$N.save.age[,1:years,,])
@@ -188,7 +195,7 @@ runScenarios <- function(models = c('linear','hyper'),
       
       
       
-      if(j == 1 & k == 1 & p == 1){
+      if(j == 1 & k == 1 & p == 1 & s == 1){
         df.sum.out <- df.sum
         df.save.out <- df.save
         df.N.out <- df.N

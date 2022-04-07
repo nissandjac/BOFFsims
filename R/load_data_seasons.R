@@ -25,7 +25,8 @@ load_data_seasons <- function(nseason = 1,
                               nsurvey = 2, 
                               SDR = .6, 
                               rhoR = 0.7,
-                              recruitment.type = 'random',
+                              recruitment.type = 'AR',
+                              F0 = 0.2,
                               Fpast = 0,
                               bfuture = 0.5,
                               moveout = 0.85, 
@@ -37,7 +38,6 @@ load_data_seasons <- function(nseason = 1,
                               sel_hist = 1,
                               catch.true = FALSE,
                               catch = NA,
-                              F0 = 0.2,
                               fishing.type = 'constant',
                               SDF = 0.05,
                               rho_F = 0.7,
@@ -329,7 +329,7 @@ load_data_seasons <- function(nseason = 1,
       omegaR[i] <- rhoR*omegaR[i-1]+sqrt(1-rhoR^2)*rnorm(1,mean = 0,sd = SDR)
       #Rdev[i]<- omegaR[i]-0.5*(SDR^2)
       
-      
+    #print('test')  
     }
     Rdev <- omegaR
     
