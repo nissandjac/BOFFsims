@@ -105,9 +105,13 @@ ggplot(Catch, aes(x = F0, y = Catch, color = as.factor(species)))+geom_line()+th
 
 
 F0 <- 0.1
-nruns <- 10
+nruns <- 30
 years <- 100
 
+
+nruns <- 100
+rho <- c(.1,.2 ,.5,.9)#, 0.3, 0.5, .9)
+set.seed(123)
 
 df.in <- fn_sims(  nruns = nruns,
                    years = years,
@@ -116,7 +120,7 @@ df.in <- fn_sims(  nruns = nruns,
                    maxage = maxage,
                    K = K,
                    t0 = 0,
-                   SDR = SDR,
+                   SDR = 0.6,
                    F0 = F0,
                    M = M0,
                    tau_sel = tau_sel,
@@ -125,7 +129,7 @@ df.in <- fn_sims(  nruns = nruns,
                    rho = rho,
                    Fpast = F0,
                    recruitment = 'BH_R',
-                   lambda.slope = .7,
+                   lambda.slope = .9,
                    mortality = 'constant',
                    fishing.type = 'AR',
                    recruitment.type = 'AR'
@@ -136,6 +140,16 @@ df.in <- fn_sims(  nruns = nruns,
     df.out <- df.in[[1]]
     df.N <- df.in[[3]]
     df.save <- df.in[[2]]
+  
+    
+    
+ggplot(df.out[grep('linear', df.out$model),] , aes(x = mage, y = rec, color = model))+geom_point()+
+  theme_classic()#+geom_smooth(method = 'lm', se = FALSE)
+    
+
+# Linear only 
+ggplot(df.save, aes(x = years, y = R, color = model))+geom_point()+scale_y_log10()
+ggplot(df.out, aes(x = years, y = mage, color = model))+geom_point()+scale_y_log10()+geom_smooth()
 #   }else{
 #     df.out <- rbind(df.out, df.in[[1]])
 #     df.N <- rbind(df.N, df.in[[3]])
@@ -151,8 +165,9 @@ df.plot <- df.out[df.out$rec>1,]
 
 
 
-# p1 <- ggplot(df.plot, aes(x = mweight, y = SSBprop, color = model))+geom_point(alpha = .2)+
-#   facet_wrap(~rho, scales = 'free')+theme_bw()+theme(legend.position = 'none')+geom_smooth(method = 'lm')
+p1 <- ggplot(df.plot, aes(x = mweight, y = SSBprop, color = model))+geom_point(alpha = .2)+
+  facet_wrap(~rho, scales = 'free')+theme_bw()+theme(legend.position = 'none')+geom_smooth(method = 'lm')
+p1
 # 
 # 
 # p2 <- ggplot(df.plot, aes(x = SSBprop, y = Rdev, color = model))+geom_point(alpha = .2)+
@@ -165,7 +180,16 @@ df.plot <- df.out[df.out$rec>1,]
 # p1/p2/p3
 
 # Look at the time series before correlating 
-ggplot(df.save[df.save$run == 1,], aes(x = years, y = R, color = model))+geom_line()+facet_wrap(~rho)
+df.p <- df.save[df.save$model %in% c('linear-BOFF', 'linear-noBOFF'),]
+df.p1 <- df.out[df.out$model %in% c('linear-BOFF', 'linear-noBOFF'),]
+
+
+ggplot(df.p[df.save$run == 30,], aes(x = years, y = R, color = model))+geom_line()#+facet_wrap(~rho)
+
+
+ggplot(df.p1, aes(x = mweight , y = rec, color = model))+geom_point()+geom_smooth()
+
+
 
 # See if seeds are working correctly 
 
@@ -194,6 +218,8 @@ df.plot[df.plot$years>round(max(df.plot$years)/2),] %>% group_by(model, run, Lin
   ggplot(aes(x = mweight, y = Rresid))+geom_point(alpha =.2)+geom_smooth(method = 'lm')+theme_classic()
 
 
+df.plot[df.plot$years>round(max(df.plot$years)/2),] %>% group_by(model, run, Linf, SDR, K, tau, rho) %>% 
+  ggplot(aes(x = mweight, y = Rresid))+geom_point(alpha =.2)+geom_smooth(method = 'lm')+theme_classic()
 
 
 
@@ -203,10 +229,18 @@ p1 <-  ggplot(prop.plot, aes(x = model, y = value, fill = model))+geom_violin()+
   facet_grid(factor(rho)~name)+scale_x_discrete()+
   theme_bw()+theme(axis.text.x = element_blank())+coord_cartesian(ylim = c(-lims,lims))+geom_hline(aes(yintercept = 0), linetype = 2)
 
+
+p2 <-  ggplot(prop.plot, aes(x = factor(rho), y = value, fill = factor(rho)))+geom_violin()+geom_boxplot(width = 0.1)+
+  facet_grid(model~name)+scale_x_discrete()+
+  theme_bw()+theme(axis.text.x = element_blank())+coord_cartesian(ylim = c(-lims,lims))+geom_hline(aes(yintercept = 0), linetype = 2)
+p2
+
+
+
 p1
 
 ggsave('figures/rho_violin_nofishing.png', p1, width = 16, height = 16)
-
+ggsave('figures/rhomodel_violin_nofishing.png', p2, width = 12, height = 16)
 
 # Plot some stock recruitment 
 idx <- c(1, 15, 25, 30, 50)
@@ -293,15 +327,5 @@ p3 <- ggplot(df.save, aes(x = SSB,  y = Rscam, color = factor(run)))+geom_line()
 p3
 
 ggsave(p3, filename = 'figures/SR_relations.png', width = 20, height = 16, units = 'cm')
-
-
-
-
-
-
-
-
-
-
 
 

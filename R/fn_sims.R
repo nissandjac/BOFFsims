@@ -85,8 +85,6 @@ fn_sims <- function(
   
   Fin <- F0
   
-  seeds <- nruns*length(rho)
-  
   
   ls.plot <- runScenarios(models = c('linear','hyper'),
                           recLambda = c('noBOFF','BOFF'),
@@ -109,8 +107,8 @@ fn_sims <- function(
                           tau_sel = tau_sel,
                           M = M,
                           mortality = mortality,
-                          recruitment.type = recruitment.type,
-                          seeds =)
+                          recruitment.type = recruitment.type
+                          )
   
   # Run all the models 
   

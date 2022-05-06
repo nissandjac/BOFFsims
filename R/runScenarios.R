@@ -63,19 +63,18 @@ runScenarios <- function(models = c('linear','hyper'),
     
   }
   
-  set.seed(123)
   
+    
+ for(k in 1:length(models)){
   
-  for(s in 1:length(rho)){
-    
-    for(k in 1:length(models)){
-    
-      for(j in 1:length(recLambda)){
+     for(s in 1:length(rho)){
+        
+       for(j in 1:length(recLambda)){
       
-        for(p in 1:length(F0)){
+         for(p in 1:length(F0)){
       
       
-      df.save <- data.frame(years = rep(1:years, nruns),
+         df.save <- data.frame(years = rep(1:years, nruns),
                             F0 = F0[p],
                             rho = rho[s],
                             SSB = NA,
@@ -154,7 +153,7 @@ runScenarios <- function(models = c('linear','hyper'),
                                 lambda = lambda,
                                 lambda.slope = lambda.slope) # Specify parameters
         
-        
+
         
         tmprun <- run.agebased.true.catch(df, seed = seeds[i])
         
