@@ -109,11 +109,13 @@ nruns <- 30
 years <- 100
 
 
-nruns <- 100
-rho <- c(.1,.2 ,.5,.9)#, 0.3, 0.5, .9)
+nruns <- 10
+rho <- c(.1,.9)#, 0.3, 0.5, .9)
 set.seed(123)
 
-df.in <- fn_sims(  nruns = nruns,
+df.in <- fn_sims(  models = c('linear'),
+                   recLambda = c('noBOFF','BOFF'),
+                   nruns = nruns,
                    years = years,
                    tau = tau,
                    Linf = Linf,
@@ -128,6 +130,7 @@ df.in <- fn_sims(  nruns = nruns,
                    R0 = R0,
                    rho = rho,
                    Fpast = F0,
+                   lambda.in = c(0.1, 0.5, .8),
                    recruitment = 'BH_R',
                    lambda.slope = .9,
                    mortality = 'constant',

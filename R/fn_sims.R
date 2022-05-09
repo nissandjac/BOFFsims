@@ -1,5 +1,6 @@
 # Run egg trial thingie # 
-fn_sims <- function(
+fn_sims <- function(models = c('noBOFF','BOFF'),
+                    recLambda = c('hyper','linear'),
                     years = 100,
                     nruns = 100,
                     tau = 5,
@@ -17,6 +18,7 @@ fn_sims <- function(
                     Fpast = 0,
                     recruitment = 'BH_R',
                     lambda.slope = .7,
+                    lambda.in = 0.4,
                     mortality = 'constant',
                     fishing.type = 'constant',
                     recruitment.type = 'AR'
@@ -86,13 +88,13 @@ fn_sims <- function(
   Fin <- F0
   
   
-  ls.plot <- runScenarios(models = c('linear','hyper'),
-                          recLambda = c('noBOFF','BOFF'),
+  ls.plot <- runScenarios(models = models,
+                          recLambda = recLambda,
                           nruns = nruns, 
                           years = years,
                           Fpast = Fpast,
                           runLambda = FALSE,
-                          lambda.in = .4,
+                          lambda.in = lambda.in,
                           rho = rho,
                           egg.df = codest, 
                           egg.scale = egg.scale,

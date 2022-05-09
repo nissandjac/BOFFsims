@@ -69,9 +69,13 @@ runScenarios <- function(models = c('linear','hyper'),
   
      for(s in 1:length(rho)){
         
+       for(l in 1:length(lambda.in)){ 
+       
        for(j in 1:length(recLambda)){
       
+         
          for(p in 1:length(F0)){
+           
       
       
          df.save <- data.frame(years = rep(1:years, nruns),
@@ -84,6 +88,7 @@ runScenarios <- function(models = c('linear','hyper'),
                             Rtot = NA,
                             Catch = NA, 
                             M = NA,
+                            lambda = lambda.in[l],
                             run = rep(1:nruns, each = years),
                             model = paste(models[k],recLambda[j], sep = '-'))
       
@@ -91,6 +96,7 @@ runScenarios <- function(models = c('linear','hyper'),
         df.N <- data.frame( years = rep(rep(1:years, nruns), each = maxage+1),
                             F0 = F0[p],
                             rho = rho[s],
+                            lambda = lambda.in[l],
                             age = rep(0:maxage, nruns*length(1:years)),
                             N = NA,
                             Rdev = NA,
@@ -112,6 +118,7 @@ runScenarios <- function(models = c('linear','hyper'),
           
           negg = egg.df$parameters[['alpha.lin']]/egg.scale
           eggbeta = egg.df$parameters[['beta.lin']]
+          print(negg)
         }
         
         if(models[k] == 'hyper'){
@@ -125,7 +132,7 @@ runScenarios <- function(models = c('linear','hyper'),
         }
         
         if(recLambda[j] == 'BOFF'){
-          lambda = lambda.in
+          lambda = lambda.in[l]
         }
         
         
@@ -166,7 +173,8 @@ runScenarios <- function(models = c('linear','hyper'),
         df.save[df.save$run == i,]$F0 <- F0[p]
         df.save[df.save$run == i,]$M <- df$M0
         df.save[df.save$run == i,]$SR <- tmprun$SR
-        
+        df.save[df.save$run == i,]$rho <- df$rho
+        df.save[df.save$run == i,]$lambda <- df$lambda
         
         df.N[df.N$run == i,]$N <- as.numeric(tmprun$N.save.age[,1:years,,])
         df.N[df.N$run == i,]$weight <- as.numeric(df$wage_ssb)
@@ -206,7 +214,8 @@ runScenarios <- function(models = c('linear','hyper'),
       }
       
     }
-    }
+       }
+       }
   }
   
   }
