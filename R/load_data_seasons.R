@@ -51,7 +51,7 @@ load_data_seasons <- function(nseason = 1,
                               negg = rep(1, nage),
                               eggbeta = 1,
                               lambda = NA,
-                              lambda.slope= 0.2,
+                              lambda.cut= 0.9,
                               seed = NA
                               ){
   
@@ -449,7 +449,7 @@ load_data_seasons <- function(nseason = 1,
                   F0 = F0,
                   BOFF = BOFF,
                   SDM = SDM,
-                  rho = rho,
+                  rho = rhoR,
                   omega = omega,
                   M_limit = M_limit,
                   mortality = mortality,
@@ -458,7 +458,7 @@ load_data_seasons <- function(nseason = 1,
                   beta = beta,
                   egg.size = egg.size,
                   lambda = lambda,
-                  lambda.slope = lambda.slope
+                  lambda.cut = lambda.cut
                   
                 
                   # Parameters from the estimation model 

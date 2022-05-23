@@ -5,7 +5,7 @@ runScenarios <- function(models = c('linear','hyper'),
                          lambda.in = NA,
                          runLambda = TRUE,
                          egg.df,
-                         lambda.slope = 0.3,
+                         lambda.cut = 0.9,
                          Linf = 150,
                          t0 = 0,
                          maxage = 10,
@@ -14,15 +14,16 @@ runScenarios <- function(models = c('linear','hyper'),
                          M = 0.4,
                          Fpast = 0,
                          SDR = .5,
+                         SDF = 0.2,
                          F0 = 0,
                          R0 = 1000,
                          h = 0.4,
                          rho = 0.001,
                          egg.scale = 1, 
                          tau_sel= 2,
-                         recruitment = 'BH_R',
+                         recruitment = 'BH_steep',
                          recruitment.type = 'AR',
-                         fishing.type = 'constant',
+                         fishing.type = 'AR',
                          mortality = 'constant',
                          seeds = round(runif(nruns, min = 1, max = 1e6))){
   
@@ -79,10 +80,11 @@ runScenarios <- function(models = c('linear','hyper'),
       
       
          df.save <- data.frame(years = rep(1:years, nruns),
-                            F0 = F0[p],
+                            F0 = NA,
                             rho = rho[s],
                             SSB = NA,
                             R = NA,
+                            xfrac = NA,
                             R0_boff = NA,
                             SR = NA,
                             Rtot = NA,
@@ -94,7 +96,7 @@ runScenarios <- function(models = c('linear','hyper'),
       
       
         df.N <- data.frame( years = rep(rep(1:years, nruns), each = maxage+1),
-                            F0 = F0[p],
+                            F0 = NA,
                             rho = rho[s],
                             lambda = lambda.in[l],
                             age = rep(0:maxage, nruns*length(1:years)),
@@ -118,7 +120,6 @@ runScenarios <- function(models = c('linear','hyper'),
           
           negg = egg.df$parameters[['alpha.lin']]/egg.scale
           eggbeta = egg.df$parameters[['beta.lin']]
-          print(negg)
         }
         
         if(models[k] == 'hyper'){
@@ -134,7 +135,6 @@ runScenarios <- function(models = c('linear','hyper'),
         if(recLambda[j] == 'BOFF'){
           lambda = lambda.in[l]
         }
-        
         
         df <- load_data_seasons(nseason = 1,
                                 nyear = years,# Set up parameters 
@@ -153,14 +153,16 @@ runScenarios <- function(models = c('linear','hyper'),
                                 recruitment = recruitment,
                                 recruitment.type = recruitment.type,
                                 negg = negg,
+                                SDF = SDF,
                                 eggbeta = eggbeta,
                                 F0 = F0[p],
                                 rhoR = rho[s],
                                 R0 = R0,
                                 lambda = lambda,
-                                lambda.slope = lambda.slope) # Specify parameters
+                                lambda.cut = lambda.cut) # Specify parameters
         
 
+        
         
         tmprun <- run.agebased.true.catch(df, seed = seeds[i])
         
@@ -168,9 +170,10 @@ runScenarios <- function(models = c('linear','hyper'),
         df.save[df.save$run == i,]$SSB <- tmprun$SSB
         df.save[df.save$run == i,]$R <- tmprun$R.save
         df.save[df.save$run == i,]$R0_boff <- tmprun$R0.boff
+        df.save[df.save$run == i,]$xfrac <- tmprun$x.save
         df.save[df.save$run == i,]$Rtot <- tmprun$Rtot.save
         df.save[df.save$run == i,]$Catch <- tmprun$Catch
-        df.save[df.save$run == i,]$F0 <- F0[p]
+        df.save[df.save$run == i,]$F0 <- df$F0
         df.save[df.save$run == i,]$M <- df$M0
         df.save[df.save$run == i,]$SR <- tmprun$SR
         df.save[df.save$run == i,]$rho <- df$rho
@@ -180,7 +183,7 @@ runScenarios <- function(models = c('linear','hyper'),
         df.N[df.N$run == i,]$weight <- as.numeric(df$wage_ssb)
         df.N[df.N$run == i,]$mat <- rep(df$Matsel, years)
         df.N[df.N$run == i,]$Catch <- as.numeric(tmprun$Catch.age)
-        df.N[df.N$run == i,]$F0 <- F0[p]
+        df.N[df.N$run == i,]$F0 <- df$F0
         df.N[df.N$run == i,]$Rdev <- rep(df$parms$Rin, each = maxage+1)
         
       }
@@ -197,12 +200,12 @@ runScenarios <- function(models = c('linear','hyper'),
                   Rmax = quantile(R, probs = 0.95),
                   Cmin = quantile(Catch, probs = 0.05),
                   Cmax = quantile(Catch, probs = 0.95),
-                  F0 = median(F0[p])
+                  F0 = median(df$F0)
         )
       
       
       
-      if(j == 1 & k == 1 & p == 1 & s == 1){
+      if(j == 1 & k == 1 & p == 1 & s == 1 & l == 1){
         df.sum.out <- df.sum
         df.save.out <- df.save
         df.N.out <- df.N

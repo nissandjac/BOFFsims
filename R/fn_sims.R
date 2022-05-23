@@ -16,8 +16,8 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
                     egg.scale = 1,
                     tau_sel = 2,
                     Fpast = 0,
-                    recruitment = 'BH_R',
-                    lambda.slope = .7,
+                    recruitment = 'BH_steep',
+                    lambda.cut = .7,
                     lambda.in = 0.4,
                     mortality = 'constant',
                     fishing.type = 'constant',
@@ -98,7 +98,7 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
                           rho = rho,
                           egg.df = codest, 
                           egg.scale = egg.scale,
-                          lambda.slope = lambda.slope,
+                          lambda.cut = lambda.cut,
                           SDR = SDR,
                           F0 = Fin,
                           maxage = maxage,
@@ -109,6 +109,7 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
                           tau_sel = tau_sel,
                           M = M,
                           mortality = mortality,
+                          fishing.type = fishing.type,
                           recruitment.type = recruitment.type
                           )
   
@@ -135,7 +136,7 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
   # Remove the zero age from the calculations 
   
   
-  df.Nsum <- df.N[df.N$age > 1,] %>% 
+  df.Nsum <- df.N[df.N$age > 0,] %>% 
     group_by(years, F0, model, old, run) %>% 
     dplyr::summarise(N = sum(N),
               Catch = sum(Catch),
@@ -144,7 +145,7 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
   
   # Get median weight weighted by numbers
   
-  df.wSum <- df.N[df.N$age > 1,] %>% 
+  df.wSum <- df.N[df.N$age > 0,] %>% 
     group_by(years, F0, model ,run) %>%
     dplyr::summarise(mWeight = weighted.mean(weight, N),
               mAge = weighted.mean(age, N)) %>% arrange(run, model)
@@ -158,17 +159,17 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
   R.df <- ls.plot[[2]] %>% arrange(run, model,years) 
   
   ### DO it the old slow way, but change later 
-  models <- unique(R.df$model)
+  modelruns <- unique(R.df$model)
   nruns <- max(R.df$run)
   R.df$residuals <- NA
   
   scammodels <- list()
   
   for(i in 1:nruns){
-    for(j in 1:length(models)){
+    for(j in 1:length(modelruns)){
       
       
-     dftmp <- R.df[R.df$run == i & R.df$model == models[j],]  
+     dftmp <- R.df[R.df$run == i & R.df$model == modelruns[j],]  
      Ftmp <- scam(log(R+.001) ~ s(SSB, k = 20, bs = 'mpd', m = 2) +  
                                       offset(log(SSB+.001)), 
                   family=gaussian(link="identity"), data = dftmp,optimizer="nlm",sp=0.01)
@@ -180,7 +181,7 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
     
      
      # Add the residuals to the R.df data frame 
-     R.df[R.df$run == i & R.df$model == models[j],]$residuals <- dftmp$residuals
+     R.df[R.df$run == i & R.df$model == modelruns[j],]$residuals <- dftmp$residuals
      
      
      }
@@ -198,6 +199,7 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
                            mage = df.wSum$mAge,
                            rec = R.df$R,
                            rho = R.df$rho,
+                           lambda = R.df$lambda,
                            M = R.df$M,
                            F0 = R.df$F0,
                            recR0 = R.df$R/exp(df$parms$logRinit),
@@ -223,7 +225,7 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
   
   # Try the correlation coefficients 
   
-  prop.plot <- df.propOld %>% group_by(model, run, rho) %>% dplyr::summarise(SSBcorRR0  = cor(SSBprop, recR0),
+  prop.plot <- df.propOld %>% group_by(model, run, rho, lambda) %>% dplyr::summarise(SSBcorRR0  = cor(SSBprop, recR0),
                                                                 weightcorRR0  = cor(mweight, recR0),
                                                                 agecorRR0  = cor(mage, recR0),
                                                                 SSBcorRtot  = cor(SSBprop, rtot),

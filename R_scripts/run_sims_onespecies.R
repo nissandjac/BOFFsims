@@ -43,7 +43,7 @@ codest <- est_eggs(x = cod$weight,
 
 Linf <- 50
 K <-  0.4
-SDR <- 0.4
+SDR <- 0
 rho <- c(.01,.1, .5, .7, .9) # Try five different auto correlation coefficients 
 #rho <- rep(.5, 5)
 maxage <- 10
@@ -52,7 +52,8 @@ M0 <- .4
 tau_sel <- 2
 egg.scale <- 1e5
 R0 = 1000
-recruitment = 'BH_R'
+recruitment = 'BH_steep'
+lambda.cut <- .9
 
 nspecies <- 1
 F0 <- seq(0.1,1, length.out = 5)
@@ -107,22 +108,29 @@ ggplot(Catch, aes(x = F0, y = Catch, color = as.factor(species)))+geom_line()+th
 F0 <- 0.1
 nruns <- 30
 years <- 100
-
+t0 <- 0
+models = c('linear','hyper')
+recLambda = c('noBOFF','BOFF')
+recruitment <- 'BH_steep'
+mortality = 'constant'
+fishing.type = 'AR'
+recruitment.type = 'AR'
 
 nruns <- 10
 rho <- c(.1,.9)#, 0.3, 0.5, .9)
 set.seed(123)
+lambda.in <- c(0.5, 1, 2)
 
-df.in <- fn_sims(  models = c('linear'),
-                   recLambda = c('noBOFF','BOFF'),
+df.in <- fn_sims(  models = models,
+                   recLambda = recLambda,
                    nruns = nruns,
                    years = years,
                    tau = tau,
                    Linf = Linf,
                    maxage = maxage,
                    K = K,
-                   t0 = 0,
-                   SDR = 0.6,
+                   t0 = t0,
+                   SDR = 0.05,
                    F0 = F0,
                    M = M0,
                    tau_sel = tau_sel,
@@ -130,12 +138,12 @@ df.in <- fn_sims(  models = c('linear'),
                    R0 = R0,
                    rho = rho,
                    Fpast = F0,
-                   lambda.in = c(0.1, 0.5, .8),
-                   recruitment = 'BH_R',
-                   lambda.slope = .9,
-                   mortality = 'constant',
-                   fishing.type = 'AR',
-                   recruitment.type = 'AR'
+                   lambda.in = lambda.in,
+                   recruitment = recruitment,
+                   lambda.cut = lambda.cut,
+                   mortality = mortality,
+                   fishing.type = fishing.type,
+                   recruitment.type = recruitment.type
                    
   )
   
@@ -144,11 +152,19 @@ df.in <- fn_sims(  models = c('linear'),
     df.N <- df.in[[3]]
     df.save <- df.in[[2]]
   
-    
+df.out$lambda[is.na(df.out$lambda)] <- 0
+df.save$lambda[is.na(df.out$lambda)] <- 0
+df.N$lambda[is.na(df.out$lambda)] <- 0
+
     
 ggplot(df.out[grep('linear', df.out$model),] , aes(x = mage, y = rec, color = model))+geom_point()+
   theme_classic()#+geom_smooth(method = 'lm', se = FALSE)
     
+
+
+ggplot(df.out, aes(x = propOld, y = rec, color = model))+
+  geom_point()+facet_grid(rho~lambda)#+geom_smooth()
+
 
 # Linear only 
 ggplot(df.save, aes(x = years, y = R, color = model))+geom_point()+scale_y_log10()

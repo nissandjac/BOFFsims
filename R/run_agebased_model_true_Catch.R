@@ -166,6 +166,9 @@ run.agebased.true.catch <- function(df, seed = 123){
   
   V.save <- array(NA,dim = c(nyear, nspace, nseason), dimnames = list(
     year = year, space = 1:nspace, season = 1:nseason))
+  
+  x.save <- array(NA,dim = c(nyear, nspace), dimnames = list(
+    year = year, space = 1:nspace))
 
   Catch.save.age <- array(NA,dim = c(nage,nyear, nspace, nseason), 
                           dimnames = list(age = age, year = year, space = 1:nspace, season = 1:nseason))
@@ -342,17 +345,48 @@ run.agebased.true.catch <- function(df, seed = 123){
         
         N.save.age[1,yr,space,1] <- 0 # No recruits yet (avoid NA calculation)
         # Calculate eggs per individual   
+        
+        # 
+        # R <- (4*h*R_0*Rtot/
+        #        (R_0*(1-h)+ Rtot*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
+
+        #
+        
+        # Formulate BH as a funciton of eggs 
+        
         Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size)
-
-        # 
-        R <- (4*h*R_0*Rtot/
-               (R_0*(1-h)+ Rtot*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
-
-        # 
-        R <- (4*h*R_0[space]*SSB[yr,space]/
-                (SSB_0[space]*(1-h)+ SSB[yr,space]*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)#*recruitmat[space]
-
-        print('hm fix issues with this SR function')
+        R0_tot <- sum(Ninit[2:nage]*Mat.sel[2:nage]*df$egg.size[2:nage]) # Don't include  recruits in this calc 
+        
+        
+        # Perhaps this formulation is more stable
+        tauBoff <- which.min((Mat.sel-df$lambda.cut)^2)
+        
+        if(yr == 1){
+          x0 <- sum(N.save.age[df$age >= tauBoff,yr,,]*df$Matsel[df$age >= tauBoff]*df$egg.size[df$age >= tauBoff])/
+            sum(N.save.age[,yr,,]*df$Matsel*df$egg.size, na.rm  =TRUE)
+        }
+        
+        
+        x <- sum(N.save.age[df$age >= tauBoff,yr,,]*df$Matsel[df$age >= tauBoff]*df$egg.size[df$age >= tauBoff])/
+          sum(N.save.age[,yr,,]*df$Matsel*df$egg.size, na.rm  =TRUE)
+        
+        
+        # plot boff as a function of X 
+        
+         # Simpler boff formulation
+        if(!is.na(df$lambda)){
+          boff <- df$lambda*(x-x0/2) + 1
+        }else{
+          boff <- 1
+        }
+        
+        x.save[yr, space] <- x
+        R0.boff[yr,nspace] <- boff
+        
+        
+        R <- (4*h*R_0[space]*Rtot/
+                (R0_tot*(1-h)+ Rtot*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)*boff#*recruitmat[space]
+       
       }
       
       
@@ -705,6 +739,7 @@ run.agebased.true.catch <- function(df, seed = 123){
                      N.save.age = N.save.age,
                      R.save = R.save,
                      R0.boff = R0.boff,
+                     x.save = x.save,
                      Rtot.save = Rtot.save,
                      SR = SR,
                      V.save = V.save,

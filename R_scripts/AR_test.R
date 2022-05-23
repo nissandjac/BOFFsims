@@ -10,12 +10,11 @@ rho <- c(.1,.2 ,.5,.9)#, 0.3, 0.5, .9)
 t0 = 0
 SDR = 0.6
 M <- .2
-lambda.slope <- .7
+lambda.cut <- .9
 lambda <- NA
 R0 <- 1000
                
-recruitment = 'BH_R'
-lambda.slope = .9
+recruitment = 'BH_steep'
 mortality = 'constant'
 fishing.type = 'AR'
 recruitment.type = 'AR'
@@ -59,7 +58,7 @@ eggbeta = codest$parameters[['beta.lin']]
                         rhoR = rho[i],
                         R0 = R0,
                         lambda = lambda,
-                        lambda.slope = lambda.slope) # Specify parameters
+                        lambda.cut = lambda.cut) # Specify parameters
 
 
 
