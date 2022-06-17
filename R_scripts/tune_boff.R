@@ -162,7 +162,7 @@ lambda.in <- .5
 rho <- c(0.1, .9)
 t0 <- 0
 lambda.cut <- 0.8
-SDR <- c(.2,.6,1.2)
+SDR <- 1
 SDF = .2
 M <- .3
 nruns
@@ -208,8 +208,10 @@ ggplot(df.plot[df.plot$years > 20,] ,aes(x = xfrac, y = R, color = model))+geom_
 df.p2 <- df.plot[df.plot$years > 20,] %>%  group_by(model, run, rho) %>% summarise(SSBcor = cor(SSB, R),
                                                                               xCor = cor(xfrac, R))
 
-p1 <- ggplot(df.p2, aes(x = model, y = SSBcor, color = model))+geom_violin()+geom_boxplot(width = .2)+facet_wrap(~rho)+theme_bw()
-p2 <- ggplot(df.p2, aes(x = model, y = xCor, color = model))+geom_violin()+geom_boxplot(width = .2)+facet_wrap(~rho)+theme_bw()
+p1 <- ggplot(df.p2, aes(x = model, y = SSBcor, color = model))+geom_violin()+geom_boxplot(width = .2)+
+  facet_wrap(~rho)+theme_bw()+coord_cartesian(ylim = c(-1,1))
+p2 <- ggplot(df.p2, aes(x = model, y = xCor, color = model))+geom_violin()+geom_boxplot(width = .2)+
+  facet_wrap(~rho)+theme_bw()+coord_cartesian(ylim = c(-1,1))
 
 
 p1 / p2
