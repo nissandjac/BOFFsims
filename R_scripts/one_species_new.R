@@ -41,9 +41,10 @@ codest <- est_eggs(x = cod$weight,
 
 # Life history 
 
+
 Linf <- 50
 K <-  0.4
-SDR <- 0
+SDR <- 0.
 rho <- c(.01,.1, .5, .7, .9) # Try five different auto correlation coefficients 
 #rho <- rep(.5, 5)
 maxage <- 10
@@ -51,12 +52,15 @@ tau <- 3
 M0 <- .4
 tau_sel <- 2
 egg.scale <- 1e5
-R0 = 1000
+R0 = 50
 recruitment = 'BH_steep'
-lambda.cut <- .9
-
+recruitment.type <- 'AR'
+fishing.type <- 'constant'
 nspecies <- 1
+mortality <- 'constant'
 F0 <- seq(0.1,1, length.out = 5)
+
+
 
 
 # Calculate Fmsy as a function of LH parameters 
@@ -108,17 +112,20 @@ ggplot(Catch, aes(x = F0, y = Catch, color = as.factor(species)))+geom_line()+th
 F0 <- seq(0.1,1, length.out = 5)
 years <- 100
 t0 <- 0
-models = c('linear','hyper')
+models = c('linear')
 recLambda = c('noBOFF','BOFF')
 recruitment <- 'BH_steep'
 mortality = 'constant'
-fishing.type = 'constant'
+fishing.type = 'AR'
 recruitment.type = 'AR'
 
 nruns <- 10
-rho <- c(.1,.9)#, 0.3, 0.5, .9)
+rho <- c(.5)#, 0.3, 0.5, .9)
 set.seed(123)
 lambda.in <- c(0.5, 1, 2)
+lambda.cut <- .9
+
+F0 <- seq(0,.8, length.out = 20)
 
 df.in <- fn_sims(  models = models,
                    recLambda = recLambda,
@@ -129,8 +136,9 @@ df.in <- fn_sims(  models = models,
                    maxage = maxage,
                    K = K,
                    t0 = t0,
-                   SDR = 0.3,
-                   F0 = 0,
+                   SDR = 0.5,
+                   SDF = 0,
+                   F0 = F0,
                    M = M0,
                    tau_sel = tau_sel,
                    egg.scale = egg.scale,
@@ -144,27 +152,39 @@ df.in <- fn_sims(  models = models,
                    fishing.type = fishing.type,
                    recruitment.type = recruitment.type
                    
-  )
-  
+)
+
 #   if(i == 1){
-    df.out <- df.in[[1]]
-    df.N <- df.in[[3]]
-    df.save <- df.in[[2]]
-  
+df.out <- df.in[[1]]
+df.N <- df.in[[3]]
+df.save <- df.in[[2]]
+
 df.out$lambda[is.na(df.out$lambda)] <- 0
-df.save$lambda[is.na(df.out$lambda)] <- 0
-df.N$lambda[is.na(df.out$lambda)] <- 0
-
-    
+df.save$lambda[is.na(df.save$lambda)] <- 0
+df.N$lambda[is.na(df.N$lambda)] <- 0
 
 
-ggplot(df.out[grep('linear', df.out$model),] , aes(x = mage, y = rec, color = model))+geom_point()+
-  theme_classic()#+geom_smooth(method = 'lm', se = FALSE)
-    
+ggplot(df.save, aes(x = xfrac, y = R, color = factor(lambda)))+geom_point()+geom_smooth()+
+  facet_wrap(~rho)+theme_classic()
 
+
+ggplot(df.out[grep('linear', df.out$model),] , aes(x = mage, y = rec, color = factor(lambda)))+geom_point()+
+  theme_classic()+geom_smooth(method = 'lm', se = FALSE)
 
 ggplot(df.out, aes(x = propOld, y = rec, color = model))+
-  geom_point()+facet_grid(rho~lambda)#+geom_smooth()
+  geom_point()+facet_grid(rho~lambda)+geom_smooth()
+
+ggplot(df.out, aes(x = propOld, y = xfrac, color = model))+
+  geom_point()+facet_grid(rho~lambda)+geom_smooth()
+
+
+# Check some other things 
+df.plot <- cbind(df.out, df.save)
+# Remove duplicated entries 
+df.plot <- df.plot[,-duplicated(names(df.plot))]
+
+ggplot(df.plot, aes(x = xfrac, y= mage, color = factor(lambda)))+geom_point()+facet_wrap(~rho)+geom_smooth(method = 'lm')
+ggplot(df.plot, aes(x = xfrac, y= SSBprop, color = factor(lambda)))+geom_point()+facet_wrap(~rho)+geom_smooth(method = 'lm')
 
 
 # Linear only 
@@ -224,7 +244,7 @@ prop.plot <- df.plot[df.plot$years>round(max(df.plot$years)/2),] %>%
                     SSBcorRdev  = cor(SSBprop, Rresid),                       
                     weightcorRdev  = cor(mweight, Rresid),                     
                     agecorRdev  = cor(mage, Rresid)
-                    ) %>% 
+  ) %>% 
   pivot_longer(9:17)
 
 df.plot[df.plot$years>round(max(df.plot$years)/2),] %>% group_by(model, run, Linf, SDR, K, tau, rho) %>% 
@@ -269,14 +289,14 @@ idx <- c(1, 15, 25, 30, 50)
 dfsave.tot <- df.save %>% 
   group_by(years, model,rho) %>% 
   dplyr::summarise(SSBmean = median(SSB), 
-            SSBmin = quantile(SSB, 0.05),
-            SSBmax = quantile(SSB, 0.95),
-            Rmean = median(R), 
-            Rmin = quantile(R, 0.05),
-            Rmax = quantile(R, 0.95),
-            Catchmean = median(Catch), 
-            Catchmin = quantile(Catch, 0.05),
-            Catchmax = quantile(Catch, 0.95))
+                   SSBmin = quantile(SSB, 0.05),
+                   SSBmax = quantile(SSB, 0.95),
+                   Rmean = median(R), 
+                   Rmin = quantile(R, 0.05),
+                   Rmax = quantile(R, 0.95),
+                   Catchmean = median(Catch), 
+                   Catchmin = quantile(Catch, 0.05),
+                   Catchmax = quantile(Catch, 0.95))
 
 p1 <- ggplot(dfsave.tot[dfsave.tot$years > 20,], aes(x = years, y = Rmean))+
   geom_line(data = df.save[df.save$run %in% idx,], aes(y = R, color = factor(run)), size = .6, alpha = .5)+
@@ -312,33 +332,33 @@ df.save$SRtrue <- NA
 for(i in 1:nruns){
   for(j in 1:length(models)){
     for(k in 1:length(rho)){
-    
-    dftmp <- df.save[df.save$run == i & df.save$model == models[j] & df.save$rho == rho[k],] 
-    
-    Ftmp <- scam(R ~ s(SSB, k = 20, bs = 'mpd', m = 2) +  
-                   offset(log(SSB+.001)), 
-                 family=gaussian(link="identity"), data = dftmp,optimizer="nlm",sp=0.01)
-    
-    
-    # Calculate the residuals (anomalies) 
-    dftmp$Rpred <- predict(Ftmp, newdata = data.frame(SSB = dftmp$SSB))
-    dftmp$residuals <- log(dftmp$R)-log(dftmp$Rpred)
-    
-    
-    # Add the residuals to the R.df data frame 
-    df.save[df.save$run == i & df.save$model == models[j] & df.save$rho == rho[k],]$residuals <- dftmp$residuals
-    df.save[df.save$run == i & df.save$model == models[j] & df.save$rho == rho[k],]$Rscam <- dftmp$Rpred
-    
-    Rtot <- dftmp$Rtot
-
-    # Regulate R0 based on the lambda function 
-    R0 <- dftmp$R0_boff
-    
-    #df.save[df.save$run == i & df.save$model == models[j] & df.save$rho == rho[k],]$SRtrue <- SR
+      
+      dftmp <- df.save[df.save$run == i & df.save$model == models[j] & df.save$rho == rho[k],] 
+      
+      Ftmp <- scam(R ~ s(SSB, k = 20, bs = 'mpd', m = 2) +  
+                     offset(log(SSB+.001)), 
+                   family=gaussian(link="identity"), data = dftmp,optimizer="nlm",sp=0.01)
+      
+      
+      # Calculate the residuals (anomalies) 
+      dftmp$Rpred <- predict(Ftmp, newdata = data.frame(SSB = dftmp$SSB))
+      dftmp$residuals <- log(dftmp$R)-log(dftmp$Rpred)
+      
+      
+      # Add the residuals to the R.df data frame 
+      df.save[df.save$run == i & df.save$model == models[j] & df.save$rho == rho[k],]$residuals <- dftmp$residuals
+      df.save[df.save$run == i & df.save$model == models[j] & df.save$rho == rho[k],]$Rscam <- dftmp$Rpred
+      
+      Rtot <- dftmp$Rtot
+      
+      # Regulate R0 based on the lambda function 
+      R0 <- dftmp$R0_boff
+      
+      #df.save[df.save$run == i & df.save$model == models[j] & df.save$rho == rho[k],]$SRtrue <- SR
     }
   }
-
-
+  
+  
 }
 
 

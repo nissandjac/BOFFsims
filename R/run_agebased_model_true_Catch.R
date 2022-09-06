@@ -359,7 +359,7 @@ run.agebased.true.catch <- function(df, seed = 123){
         
         
         # Perhaps this formulation is more stable
-        tauBoff <- which.min((Mat.sel-df$lambda.cut)^2)
+        tauBoff <- df$age[which.min((Mat.sel-df$lambda.cut)^2)]
         
         if(yr == 1){
           x0 <- sum(N.save.age[df$age >= tauBoff,yr,,]*df$Matsel[df$age >= tauBoff]*df$egg.size[df$age >= tauBoff])/
@@ -373,9 +373,11 @@ run.agebased.true.catch <- function(df, seed = 123){
         
         # plot boff as a function of X 
         
+        
+        
          # Simpler boff formulation
         if(!is.na(df$lambda)){
-          boff <- df$lambda*(x-x0/2) + 1
+          boff <- df$lambda*(x-x0/df$theta) + 1
         }else{
           boff <- 1
         }

@@ -9,6 +9,7 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
                     K = 0.6,
                     t0 = 0,
                     SDR = 0.5,
+                    SDF = 0,
                     F0 = 0.2,
                     M = 0.4,
                     R0 = 1000,
@@ -100,6 +101,7 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
                           egg.scale = egg.scale,
                           lambda.cut = lambda.cut,
                           SDR = SDR,
+                          SDF = SDF,
                           F0 = Fin,
                           maxage = maxage,
                           K = K, 
@@ -137,16 +139,17 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
   
   
   df.Nsum <- df.N[df.N$age > 0,] %>% 
-    group_by(years, F0, model, old, run) %>% 
+    group_by(years, model, old, run) %>% 
     dplyr::summarise(N = sum(N),
               Catch = sum(Catch),
               SSB=  sum(SSB),
+              F0 = mean(F0),
               Rdev = mean(Rdev)) %>% dplyr::arrange(run, old,model) # The Rdev mean is not a mean (it's the same for all ) 
   
   # Get median weight weighted by numbers
   
   df.wSum <- df.N[df.N$age > 0,] %>% 
-    group_by(years, F0, model ,run) %>%
+    group_by(years, model ,run) %>%
     dplyr::summarise(mWeight = weighted.mean(weight, N),
               mAge = weighted.mean(age, N)) %>% arrange(run, model)
   
@@ -170,14 +173,14 @@ fn_sims <- function(models = c('noBOFF','BOFF'),
       
       
      dftmp <- R.df[R.df$run == i & R.df$model == modelruns[j],]  
-     Ftmp <- scam(log(R+.001) ~ s(SSB, k = 20, bs = 'mpd', m = 2) +  
+     Ftmp <- scam(R+.001 ~ s(SSB, k = 20, bs = 'mpd', m = 2) +  
                                       offset(log(SSB+.001)), 
                   family=gaussian(link="identity"), data = dftmp,optimizer="nlm",sp=0.01)
      
       
      # Calculate the residuals (anomalies) 
-     dftmp$Rpred <- exp(predict(Ftmp, newdata = data.frame(SSB = dftmp$SSB)))
-     dftmp$residuals <- log(dftmp$R)-log(dftmp$Rpred)
+     dftmp$Rpred <- predict(Ftmp, newdata = data.frame(SSB = dftmp$SSB))
+     dftmp$residuals <- log(dftmp$Rpred)-log(dftmp$R)
     
      
      # Add the residuals to the R.df data frame 

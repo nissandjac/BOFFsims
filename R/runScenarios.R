@@ -14,7 +14,7 @@ runScenarios <- function(models = c('linear','hyper'),
                          M = 0.4,
                          Fpast = 0,
                          SDR = .5,
-                         SDF = 0.2,
+                         SDF = 0,
                          F0 = 0,
                          R0 = 1000,
                          h = 0.4,
@@ -75,12 +75,12 @@ runScenarios <- function(models = c('linear','hyper'),
        for(j in 1:length(recLambda)){
       
          
-         for(p in 1:length(F0)){
+     #    for(p in 1:length(F0)){
            
       
       
          df.save <- data.frame(years = rep(1:years, nruns),
-                            F0 = NA,
+                            F0 = F0,
                             rho = rho[s],
                             SSB = NA,
                             R = NA,
@@ -136,6 +136,15 @@ runScenarios <- function(models = c('linear','hyper'),
           lambda = lambda.in[l]
         }
         
+        
+        if(length(F0) == 1){
+          F0 <- rep(F0, years)
+        }
+        
+        if(length(F0) != years){
+          stop('wrong length of fishing mortality')
+        }
+        
         df <- load_data_seasons(nseason = 1,
                                 nyear = years,# Set up parameters 
                                 Linf = Linf, 
@@ -155,7 +164,7 @@ runScenarios <- function(models = c('linear','hyper'),
                                 negg = negg,
                                 SDF = SDF,
                                 eggbeta = eggbeta,
-                                F0 = F0[p],
+                                F0 = F0,
                                 rhoR = rho[s],
                                 R0 = R0,
                                 lambda = lambda,
@@ -205,7 +214,7 @@ runScenarios <- function(models = c('linear','hyper'),
       
       
       
-      if(j == 1 & k == 1 & p == 1 & s == 1 & l == 1){
+      if(j == 1 & k == 1 & s == 1 & l == 1){
         df.sum.out <- df.sum
         df.save.out <- df.save
         df.N.out <- df.N
@@ -216,7 +225,7 @@ runScenarios <- function(models = c('linear','hyper'),
         df.N.out <- rbind(df.N.out, df.N)
       }
       
-    }
+  #  }
        }
        }
   }

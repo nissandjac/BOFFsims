@@ -15,6 +15,7 @@ load_data_seasons <- function(nseason = 1,
                               b = 1,
                               R0 = 1e4,
                               BOFF = 1,
+                              theta = 2,
                               h = 0.8,
                               q = 1,
                               smul = 0.5,
@@ -312,6 +313,11 @@ load_data_seasons <- function(nseason = 1,
   # Insert Rdev function here 
   Rdev <- NA
   
+  if(rhoR == 0){
+    recruitment.type <- 'random'
+  }
+  
+  
   if(recruitment.type  == 'random'){
     Rdev <- rnorm(nyear, mean = 0, sd = SDR)
   }
@@ -448,6 +454,7 @@ load_data_seasons <- function(nseason = 1,
                   catch.true = catch.true,
                   F0 = F0,
                   BOFF = BOFF,
+                  theta = theta,
                   SDM = SDM,
                   rho = rhoR,
                   omega = omega,

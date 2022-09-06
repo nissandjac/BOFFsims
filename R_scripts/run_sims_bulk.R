@@ -50,7 +50,7 @@ tau <- c(1,4,5)
 M0 <- c(0.5, .4, .2)
 tau_sel <- c(1.5, 3, 3)
 egg.scale <- c(5e4, 3e5, 8e5)
-R0 = 1000
+R0 = 50
 recruitment = 'BH_R'
 
 nspecies <- 3 
