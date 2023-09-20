@@ -274,7 +274,6 @@ run.agebased.true.catch <- function(df, seed = 123){
     warning('Catch input does not match')
   }
   
-  pope.mul <- nseason/1*0.5
   pope.mul <- 0.50
   
   # Recruitment paramerters 
@@ -355,7 +354,8 @@ run.agebased.true.catch <- function(df, seed = 123){
         # Formulate BH as a funciton of eggs 
         
         Rtot <- sum(N.save.age[,yr,space,1]*Mat.sel*df$egg.size)
-        R0_tot <- sum(Ninit[2:nage]*Mat.sel[2:nage]*df$egg.size[2:nage]) # Don't include  recruits in this calc 
+        R0_tot <- sum(Ninit[1:nage]*Mat.sel[1:nage]*df$egg.size[1:nage]) # Don't include  recruits in this calc 
+        
         
         
         # Perhaps this formulation is more stable
@@ -363,17 +363,15 @@ run.agebased.true.catch <- function(df, seed = 123){
         
         if(yr == 1){
           x0 <- sum(N.save.age[df$age >= tauBoff,yr,,]*df$Matsel[df$age >= tauBoff]*df$egg.size[df$age >= tauBoff])/
-            sum(N.save.age[,yr,,]*df$Matsel*df$egg.size, na.rm  =TRUE)
+            sum(N.save.age[df$age > 0,yr,,]*df$Matsel[df$age > 0]*df$egg.size[df$age > 0], na.rm  =TRUE)
         }
         
         
         x <- sum(N.save.age[df$age >= tauBoff,yr,,]*df$Matsel[df$age >= tauBoff]*df$egg.size[df$age >= tauBoff])/
-          sum(N.save.age[,yr,,]*df$Matsel*df$egg.size, na.rm  =TRUE)
+          sum(N.save.age[df$age > 0,yr,,]*df$Matsel[df$age > 0]*df$egg.size[df$age > 0], na.rm  =TRUE)
         
         
         # plot boff as a function of X 
-        
-        
         
          # Simpler boff formulation
         if(!is.na(df$lambda)){
@@ -386,8 +384,8 @@ run.agebased.true.catch <- function(df, seed = 123){
         R0.boff[yr,nspace] <- boff
         
         
-        R <- (4*h*R_0[space]*Rtot/
-                (R0_tot*(1-h)+ Rtot*(5*h-1)))*exp(-0.5*df$b[yr]*SDR^2+Ry)*boff#*recruitmat[space]
+        R <- (4*h*R_0[space]*Rtot)/
+                (R0_tot*(1-h)+ Rtot*(5*h-1))*exp(-0.5*df$b[yr]*SDR^2+Ry)*boff#*recruitmat[space]
        
       }
       

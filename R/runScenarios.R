@@ -84,6 +84,8 @@ runScenarios <- function(models = c('linear','hyper'),
                             rho = rho[s],
                             SSB = NA,
                             R = NA,
+                            Rscam = NA,
+                            Rscam_dev = NA,
                             xfrac = NA,
                             R0_boff = NA,
                             SR = NA,
@@ -91,22 +93,25 @@ runScenarios <- function(models = c('linear','hyper'),
                             Catch = NA, 
                             M = NA,
                             lambda = lambda.in[l],
+                            Rdev = NA,
                             run = rep(1:nruns, each = years),
                             model = paste(models[k],recLambda[j], sep = '-'))
       
       
         df.N <- data.frame( years = rep(rep(1:years, nruns), each = maxage+1),
                             F0 = NA,
-                            rho = rho[s],
-                            lambda = lambda.in[l],
+                            rho = NA,
+                            lambda = NA,
                             age = rep(0:maxage, nruns*length(1:years)),
                             N = NA,
                             Rdev = NA,
+                            R = NA,
                             weight = NA,
                             mat = NA,
                             Catch = NA, 
                             run = rep(rep(1:nruns, each = years), each = maxage+1),
-                            model = paste(models[k],recLambda[j], sep = '-'))
+                            model = rep(paste(models[k],recLambda[j], sep = '-'), each = maxage +1)
+        )
       
       
       
@@ -141,6 +146,7 @@ runScenarios <- function(models = c('linear','hyper'),
           F0 <- rep(F0, years)
         }
         
+        
         if(length(F0) != years){
           stop('wrong length of fishing mortality')
         }
@@ -169,11 +175,27 @@ runScenarios <- function(models = c('linear','hyper'),
                                 R0 = R0,
                                 lambda = lambda,
                                 lambda.cut = lambda.cut) # Specify parameters
-        
 
-        
-        
         tmprun <- run.agebased.true.catch(df, seed = seeds[i])
+        
+        
+        # Do the scam in here 
+        df.tmp <- data.frame(SSB = as.numeric(tmprun$SSB),
+                             R = as.numeric(tmprun$R.save))
+        
+        
+        
+        Rtmp <- scam(log(R) ~ s(SSB, k = 20, bs = 'mpd', m = 2) +  
+                       offset(log(SSB)), 
+                     family=gaussian(link="identity"),data = df.tmp, optimizer="nlm",sp=0.01)
+        
+        
+        # Calculate the residuals (anomalies) 
+        Rpred <- exp(predict(Rtmp, newdata = data.frame(SSB = df.tmp$SSB)))
+        residuals <- log(Rpred)-log(df.tmp$R)
+        
+        # Calculate fraction of Old and Young
+        #young <- tmprun$N.save[*
         
         
         df.save[df.save$run == i,]$SSB <- tmprun$SSB
@@ -187,18 +209,24 @@ runScenarios <- function(models = c('linear','hyper'),
         df.save[df.save$run == i,]$SR <- tmprun$SR
         df.save[df.save$run == i,]$rho <- df$rho
         df.save[df.save$run == i,]$lambda <- df$lambda
+        df.save[df.save$run == i,]$Rdev <- df$parms$Rin
+        df.save[df.save$run == i,]$Rscam <- Rpred
+        df.save[df.save$run == i,]$Rscam_dev <- residuals
         
         df.N[df.N$run == i,]$N <- as.numeric(tmprun$N.save.age[,1:years,,])
         df.N[df.N$run == i,]$weight <- as.numeric(df$wage_ssb)
         df.N[df.N$run == i,]$mat <- rep(df$Matsel, years)
         df.N[df.N$run == i,]$Catch <- as.numeric(tmprun$Catch.age)
-        df.N[df.N$run == i,]$F0 <- df$F0
+        df.N[df.N$run == i,]$rho <- rep(df$rho, each = maxage + 1)
+        df.N[df.N$run == i,]$F0 <- as.numeric(tmprun$Fseason)
         df.N[df.N$run == i,]$Rdev <- rep(df$parms$Rin, each = maxage+1)
+        df.N[df.N$run == i,]$R <- rep(tmprun$R.save, each = maxage+1)
+        df.N[df.N$run == i,]$lambda <- rep(lambda, each = maxage+1)
         
       }
       
       
-      df.sum <- df.save %>% group_by(years, model) %>% 
+      df.sum <- df.save %>% group_by(years, model, rho, lambda) %>% 
         summarise(S = median(SSB),
                   Rec = median(R),
                   C = median(Catch),
@@ -209,7 +237,7 @@ runScenarios <- function(models = c('linear','hyper'),
                   Rmax = quantile(R, probs = 0.95),
                   Cmin = quantile(Catch, probs = 0.05),
                   Cmax = quantile(Catch, probs = 0.95),
-                  F0 = median(df$F0)
+                  F0 = max(F0)
         )
       
       

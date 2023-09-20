@@ -39,7 +39,44 @@ codest <- est_eggs(x = cod$weight,
                    y = cod$Fecundity_nOfEggs_per_female)
 
 
-# Life history 
+cod.df <- codest$df
+
+p1 <- ggplot(cod.df %>% filter(model != 'data'), aes(x = weight, y = estimate, color = model))+geom_line()+
+  geom_point(data=cod.df %>% filter(model == 'data'), alpha = .5)+scale_y_continuous('Fecundity')+
+  scale_x_continuous('weight (g)')+theme_classic()
+p1
+
+
+# Do it for sardine as well
+
+sard <- eggs %>% filter(Species =="Engraulis mordax")
+
+sard$weight <- 0.01*(sard$FemaleSize_mm/10)^3 # Fix the parameters for weight lenght to whatever here 
+
+sardest <- est_eggs(x = sard$weight,
+                   y = sard$Fecundity_nOfEggs_per_female)
+
+
+sard.df <- sardest$df
+
+p2 <- ggplot(sard.df %>% filter(model != 'data'), aes(x = weight, y = estimate, color = model))+geom_line()+
+  geom_point(data=sard.df %>% filter(model == 'data'), alpha = .5)+scale_y_continuous('Fecundity')+
+  scale_x_continuous('weight (g)')+theme_classic()
+p2
+
+
+# Plot them together
+pp.df <- rbind(cod.df %>% mutate(species = 'cod'), sard.df %>% mutate(species = 'sardine'))
+
+
+p2 <- ggplot(pp.df %>% filter(model != 'data'), aes(x = weight, y = estimate, color = model))+geom_line()+
+  geom_point(data=pp.df %>% filter(model == 'data'), alpha = .5)+scale_y_continuous('Fecundity')+
+  facet_wrap(~species, scales = 'free', nrow = 1)+
+  scale_x_continuous('weight (g)')+theme_classic()+theme(legend.position = c(0.2,0.8), legend.title = element_blank())
+p2
+
+ggsave(p2, file = 'egg_production_hyper_iso.png', width = 16, height = 8, units = 'cm')
+
 
 
 Linf <- 50
@@ -121,7 +158,7 @@ mortality = 'constant'
 fishing.type = 'constant'
 recruitment.type = 'AR'
 
-nruns <- 300
+nruns <- 100
 rho <- c(0, 0.3, 0.5, .9)
 set.seed(123)
 lambda.in <- c(1.5)
@@ -159,6 +196,8 @@ ls.plot <- runScenarios(models = models,
 )
 
 
+save(file ='all_runs.Rdata',  ls.plot)
+
 # 
 pfrac <- ggplot(ls.plot$df.save[ls.plot$df.save$years > 20,], aes(x = F0,y = xfrac,
                                                          color = model))+geom_point(alpha =.05)+geom_smooth(se = FALSE)+
@@ -177,9 +216,13 @@ plot1 <- p1+pfrac+ plot_annotation(tag_levels = 'a')
 plot1
 
 
+
+
+
+
 ggsave('figboff_F0.png',plot1 , width = 16, height = 10, units = 'cm')
 # Calculate fraction young and old based on mikaels calcs 
-
+R <- ls.plot$df.N[ls.plot$df.N$age == 0,]$N
 df.N <- ls.plot$df.N[ls.plot$df.N$age > 0,]
 df.sum <- ls.plot$df.sum
 
@@ -187,26 +230,32 @@ df.N$old <- 'young'
 df.N$old[df.N$age >= (df$tau+2)] <- 'old'
 
 
-xx <- df.N %>% group_by(years, F0, rho, lambda, model, old, run ) %>% summarise(SSB = sum(N*weight*mat),
+xx <- df.N %>% group_by(years, rho, lambda, model, old, run ) %>% summarise(SSB = sum(N*weight*mat),
                                                                                 Rdev = mean(Rdev))
 
 # Exclude recruits from all calculations 
 xx.tot <- df.N %>% group_by(years, rho, lambda, model, run ) %>% 
   summarise(SSB = sum(N*weight*mat),
             Rdev = mean(Rdev),
+          #  R = R,
             mage = weighted.mean(age, N*mat),
-            mweight = weighted.mean(weight, N*mat))
+            mweight = weighted.mean(weight, N*mat),
+            F0 = max(F0))
+
+xx.tot$R <- R
+
 
 xxOld <- xx[xx$old == 'old',]
 xxYoung <- xx[xx$old == 'young',]
 
 # Sort the 
 fracOld <- data.frame(oldFrac = xxOld$SSB/(xxOld$SSB+xxYoung$SSB),
-                      F0 = xxOld$F0,
+                      F0 = xx.tot$F0,
                       years = xxOld$years,
                       lambda = xxOld$lambda,
                       rho = xxOld$rho,
                       Rdev = xxOld$Rdev,
+                      R = xx.tot$R,
                       mSSBage  = xx.tot$mage,
                       mSSBweight = xx.tot$mweight,
                       model = xxOld$model,
@@ -309,6 +358,17 @@ for(i in 1:nruns){
   }
 }
 
+
+
+# Sort the R 
+
+
+
+
+
+
+
+
 # Pick 10 random  runs for better plots 
 idx <- round(runif(n = 10, min = 1, max = 100))
 
@@ -328,19 +388,26 @@ df.N$Rdev_scam <- rep(R.df$residuals, each = max(df$age))
 df.sum <- ls.plot$df.sum
 
 df.N$old <- 'young'
-df.N$old[df.N$age >= (df$tau+2)] <- 'old'
+df.N$old[df.N$age >= 6] <- 'old'
 
-xx <- df.N %>% group_by(years, rho, lambda, model, old, run ) %>% 
+
+
+
+xx <- df.N %>% group_by(years, rho, lambda, model,  run, old ) %>% 
   summarise(SSB = sum(N*weight*mat), 
             Rdev = mean(Rdev),
             Rdev_scam = mean(Rdev_scam))
 
 # # Exclude recruits from all calculations 
-xx.tot <- df.N %>% group_by(years, rho, lambda, model, run ) %>%
+xx.tot <- df.N %>% group_by(years, rho, lambda, model, run ) %>% filter(age == 0)
   summarise(SSB = sum(N*weight*mat),
             Rdev = mean(Rdev),
             mage = weighted.mean(age, N*mat),
             mweight = weighted.mean(weight, N*mat))
+R <- ls.plot$df.N[ls.plot$df.N$age == 0,]
+R$old <- 'young'
+
+R <-  R %>% group_by(years,rho, lambda, model, run, old)
 
 xxOld <- xx[xx$old == 'old',]
 xxYoung <- xx[xx$old == 'young',]
@@ -348,6 +415,8 @@ xxYoung <- xx[xx$old == 'young',]
 # Sort the 
 fracOld <- data.frame(oldFrac = xxOld$SSB/(xxOld$SSB+xxYoung$SSB),
                       #F0 = xxOld$F0,
+                      R = xx.tot$R,
+                      Rpred = R.df$Rpred,
                       years = xxOld$years,
                       lambda = xxOld$lambda,
                       rho = xxOld$rho,
@@ -413,4 +482,78 @@ pcor
 
 ggsave('correlation_plot.png',pcor, width = 10, height = 16, units = 'cm')
 
+## Do recruimtent in stead of rec dev's 
+
+df.cor <- fracOld[fracOld$years > 15,]  %>% group_by(lambda, rho, run, model) %>% 
+  mutate(R_old = cor(oldFrac, R),
+         R_old_scam = cor(oldFrac, Rpred),
+         R_mage = cor(mSSBage,R),
+         R_mage_scam = cor(mSSBage,Rpred),
+         R_mweight = cor(mSSBweight, R),
+         R_mweight_scam = cor(mSSBweight, Rpred),
+  ) %>% pivot_longer(c(R_old,R_old_scam, R_mage,R_mage_scam,
+                       R_mweight,R_mweight_scam), values_to = 'correlation')
+
+dodge <- position_dodge(0.2)
+
+
+df.cor$model[df.cor$model == 'linear-BOFF'] <- 'BOFF'
+df.cor$model[df.cor$model == 'linear-noBOFF'] <- 'Standard'
+
+pcor <- ggplot(df.cor, aes(x = name, y = correlation, color = model))+geom_violin(position = dodge)+
+  geom_boxplot(width = .05,position = dodge)+
+  scale_y_continuous('correlation coefficient with recruitment')+
+  facet_wrap(~rho, ncol = 1)+geom_hline(aes(yintercept = 0), linetype = 2, color = 'black')+
+  theme_classic()+scale_x_discrete('', labels = c('%old spawners\n(true)',
+                                                  '%old spawners\n(scam)',
+                                                  'mean age \n(true)','mean age \n(scam)', 
+                                                  'mean weight\n(true)','mean weight \n(scam)'))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 0, hjust=0),
+        legend.position = 'top',
+        legend.title = element_blank())
+
+pcor
+
+ggsave('correlation_plot_recruitment.png',pcor, width = 10, height = 16, units = 'cm')
+
+
+
+
+ggplot(fracOld[fracOld$years > 20,], aes(x = oldFrac, y = R, color = model))+geom_point(alpha = 0.01)+facet_wrap(~rho)+
+  geom_smooth()
+# Do another test #
+
+df.plot <- ls.plot$df.save
+
+
+fracOld$lambda[is.na(fracOld$lambda)] <- 0
+
+fracOld <- fracOld %>% arrange(run,lambda , rho, model )
+
+
+df.plot$oldFrac <- fracOld$oldFrac
+
+
+df.plot.cor <- df.plot[df.plot$years>20,] %>% group_by(run, model, rho) %>% summarise(R_xfrac = cor(R, xfrac),
+                                                              R_frac = cor(R, oldFrac)) %>% 
+  pivot_longer(c(R_xfrac, R_frac))
+
+
+
+ggplot(df.plot.cor, aes(x = name,y = value, color = model ))+geom_violin(position = dodge)
+
+
+
+# 
+ggplot(xxOld[xxOld$run == 1,], aes(x = years, y = SSB, color = model))+
+  geom_line()+facet_wrap(~rho)+
+  geom_line(data = xxYoung[xxYoung$run == 1,], linetype = 2)
+
+ggplot(df.plot[df.plot$run == 1,], aes(x = years, y = xfrac, color = model))+
+  geom_line()+facet_wrap(~rho)+
+  geom_line(aes(y = oldFrac), linetype = 2)
+
+ggplot(df.plot[df.plot$run == 1,], aes(x = years, y = xfrac, color = model))+
+  geom_line()+facet_wrap(~rho)+
+  geom_line(aes(y = oldFrac), linetype = 2)
 
